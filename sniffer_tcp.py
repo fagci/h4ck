@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+""" 
+Simple tcp sniffer
+"""
+
 import socket, struct
 
 s = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
@@ -14,10 +20,15 @@ def main():
         tcp_header = data[34:54]
 
         dst_mac, src_mac, _ = struct.unpack('!6s6s2s', ethernet_header)
-        _, src_ip, dst_ip = struct.unpack('!12s4s4s', ip_header)
-        src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
-
-        print('{} > {} {}:{} > {}:{}'.format(b2mac(src_mac), b2mac(dst_mac), socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
+        ip_struct = struct.unpack('!1s1s2s2s2s1s1s2s4s4s', ip_header)
+        if ip_struct[6] == b'\x06':
+            src_ip = ip_struct[8]
+            dst_ip = ip_struct[9]
+            src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
+            print('{} > {} {}:{} > {}:{}'.format(b2mac(src_mac), b2mac(dst_mac), socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
