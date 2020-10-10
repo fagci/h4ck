@@ -15,17 +15,24 @@ def main():
     while True:
         data, _ = s.recvfrom(65535)
 
-        ethernet_header = data[:14]
+        eth_header = data[:14]
         ip_header = data[14:34]
         tcp_header = data[34:54]
 
-        dst_mac, src_mac, _ = struct.unpack('!6s6s2s', ethernet_header)
-        ip_struct = struct.unpack('!BBHHHBBH4s4s', ip_header)
-        if ip_struct[6] == 6:
-            src_ip = ip_struct[8]
-            dst_ip = ip_struct[9]
-            src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
-            print('{} > {} {}:{} > {}:{}'.format(b2mac(src_mac), b2mac(dst_mac), socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
+        eth_struct = struct.unpack('!6s6sH', eth_header)
+
+        proto_type = socket.ntohs(eth_struct[2])
+
+        src_mac = b2mac(eth_struct[1])
+        dst_mac = b2mac(eth_struct[0])
+
+        if proto_type == 8: # IP
+            ip_struct = struct.unpack('!BBHHHBBH4s4s', ip_header)
+            if ip_struct[6] == 6: # TCP
+                src_ip = ip_struct[8]
+                dst_ip = ip_struct[9]
+                src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
+                print('{} > {} {}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
 
 if __name__ == "__main__":
     try:
