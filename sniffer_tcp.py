@@ -32,7 +32,12 @@ def main():
                 src_ip = ip_struct[8]
                 dst_ip = ip_struct[9]
                 src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
-                print('{} > {} {}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
+                print('\n{} > {}\n{}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
+                if data[54:]:
+                    try:
+                        print(data[54:].decode('utf-8'))
+                    except:
+                        pass
 
 if __name__ == "__main__":
     try:
