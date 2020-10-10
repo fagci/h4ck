@@ -13,11 +13,12 @@ def b2mac(bytes_addr):
 
 def main():
     while True:
-        data, _ = s.recvfrom(65535)
+        raw, _ = s.recvfrom(65535)
 
-        eth_header = data[:14]
-        ip_header = data[14:34]
-        tcp_header = data[34:54]
+        eth_header = raw[:14]
+        ip_header = raw[14:34]
+        tcp_header = raw[34:54]
+        data = str(raw[54:])
 
         eth_struct = struct.unpack('!6s6sH', eth_header)
 
@@ -33,9 +34,9 @@ def main():
                 dst_ip = ip_struct[9]
                 src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
                 print('\n{} > {}\n{}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
-                if data[54:]:
+                if 'Content-Type:' in data:
                     try:
-                        print(data[54:].decode('utf-8'))
+                        print(data)
                     except:
                         pass
 
