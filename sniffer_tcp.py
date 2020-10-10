@@ -20,8 +20,8 @@ def main():
         tcp_header = data[34:54]
 
         dst_mac, src_mac, _ = struct.unpack('!6s6s2s', ethernet_header)
-        ip_struct = struct.unpack('!1s1s2s2s2s1s1s2s4s4s', ip_header)
-        if ip_struct[6] == b'\x06':
+        ip_struct = struct.unpack('!BBHHHBBH4s4s', ip_header)
+        if ip_struct[6] == 6:
             src_ip = ip_struct[8]
             dst_ip = ip_struct[9]
             src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
