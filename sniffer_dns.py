@@ -4,7 +4,7 @@
 Simple dns sniffer
 """
 
-import socket, struct
+import socket, struct, binascii
 
 s = socket.socket(socket.PF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
 
@@ -32,18 +32,20 @@ def main():
             src_ip = socket.inet_ntoa(ip_struct[8])
             dst_ip = socket.inet_ntoa(ip_struct[9])
 
-            if ip_struct[6] == 0x11: # UDP
+            if ip_struct[6] == 17: # UDP
                 udp_struct = struct.unpack('!HHHH' , udp_header)
                 src_port = udp_struct[0]
                 dst_port = udp_struct[1]
-                udp_total_length = udp_struct[2]
-                payload_size = udp_total_length - 8
-
-                payload = raw[42:payload_size]
 
                 if dst_port == 53 or src_port == 53:
-                    print('[{}] {} > {}\n{}:{} > {}:{}'.format(payload_size, src_mac, dst_mac, src_ip, src_port, dst_ip, dst_port))
-                    print(payload)
+                    #dns_struct = struct.unpack("!2s2s2s2s2s2s", raw[42:54])
+                    r = ''
+                    domain_name_parts = raw[54:].split(b'\x00')[0]
+                    for c in domain_name_parts:
+                        if 48 <= c <= 57 or 65 <= c <= 90 or 97 <= c <= 122: r += chr(c)
+                        else: r += '.'
+                    print('{} > {}\n{}:{} > {}:{}'.format(src_mac, dst_mac, src_ip, src_port, dst_ip, dst_port))
+                    print(r)
 
 if __name__ == "__main__":
     try:
