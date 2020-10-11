@@ -18,7 +18,7 @@ def main():
         eth_header = raw[:14]
         ip_header = raw[14:34]
         tcp_header = raw[34:54]
-        data = str(raw[54:])
+        data = raw[54:]
 
         eth_struct = struct.unpack('!6s6sH', eth_header)
 
@@ -34,11 +34,13 @@ def main():
                 dst_ip = ip_struct[9]
                 src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
                 print('\n{} > {}\n{}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
-                if 'Content-Type:' in data:
-                    try:
-                        print(data)
-                    except:
-                        pass
+                if b'HTTP' in data:
+                    ln = data.split(b'\r\n')
+                    for l in ln:
+                        try:
+                            print(str(l))
+                        except Exception as e:
+                            print(e)
 
 if __name__ == "__main__":
     try:
