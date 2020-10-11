@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-ScaPy testbed
+ScaPy dns sniffer
 """
 
 from scapy.all import DNSQR, sniff, DNS
