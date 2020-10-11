@@ -17,8 +17,7 @@ def main():
 
         eth_header = raw[:14]
         ip_header = raw[14:34]
-        tcp_header = raw[34:54]
-        data = raw[54:]
+        udp_header = raw[34:42]
 
         eth_struct = struct.unpack('!6s6sH', eth_header)
 
@@ -31,16 +30,8 @@ def main():
             ip_struct = struct.unpack('!BBHHHBBH4s4s', ip_header)
             src_ip = ip_struct[8]
             dst_ip = ip_struct[9]
-            if ip_struct[6] == 6: # TCP
-                src_port, dst_port, _ = struct.unpack('!HH16s', tcp_header)
-                print('\n{} > {}\n{}:{} > {}:{}'.format(src_mac, dst_mac, socket.inet_ntoa(src_ip), src_port, socket.inet_ntoa(dst_ip), dst_port))
-                if b'HTTP' in data:
-                    ln = data.split(b'\r\n')
-                    for l in ln:
-                        try:
-                            print(str(l))
-                        except Exception as e:
-                            print(e)
+            if ip_struct[6] == 0x11: # UDP
+                pass # not implemented yet
 
 if __name__ == "__main__":
     try:
