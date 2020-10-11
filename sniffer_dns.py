@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-""" 
-Simple tcp sniffer
+"""
+Simple dns sniffer
 """
 
 import socket, struct
@@ -27,11 +27,23 @@ def main():
         dst_mac = b2mac(eth_struct[0])
 
         if proto_type == 8: # IP
+
             ip_struct = struct.unpack('!BBHHHBBH4s4s', ip_header)
-            src_ip = ip_struct[8]
-            dst_ip = ip_struct[9]
+            src_ip = socket.inet_ntoa(ip_struct[8])
+            dst_ip = socket.inet_ntoa(ip_struct[9])
+
             if ip_struct[6] == 0x11: # UDP
-                pass # not implemented yet
+                udp_struct = struct.unpack('!HHHH' , udp_header)
+                src_port = udp_struct[0]
+                dst_port = udp_struct[1]
+                udp_total_length = udp_struct[2]
+                payload_size = udp_total_length - 8
+
+                payload = raw[42:payload_size]
+
+                if dst_port == 53 or src_port == 53:
+                    print('[{}] {} > {}\n{}:{} > {}:{}'.format(payload_size, src_mac, dst_mac, src_ip, src_port, dst_ip, dst_port))
+                    print(payload)
 
 if __name__ == "__main__":
     try:
