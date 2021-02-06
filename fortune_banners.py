@@ -8,7 +8,7 @@ import re
 
 __author__ = 'Mikhail Yudin aka fagci'
 
-title_re = re.compile(r'<title[^>]*>([^<]+)', re.IGNORECASE)
+title_re = re.compile(r'<title[^>]*?>([^<]+?)<', re.IGNORECASE)
 
 
 gen_lock = Lock()
@@ -16,7 +16,8 @@ print_lock = Lock()
 
 
 def generate_ports():
-    ports = [21, 22, 23, 25, 80, 139, 443, 445, 3306]
+    ports = [80, 443]
+    # ports = [21, 22, 23, 25, 80, 139, 443, 445, 3306, 8080, 8000]
     shuffle(ports)
     return ports
 
