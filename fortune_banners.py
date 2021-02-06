@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python -u
-"""My fastest python native implementation of IP http fortune"""
+"""My fastest python native implementation of IP banners fortune"""
 import socket as so
 from threading import Lock, Thread
 from random import randrange, shuffle
