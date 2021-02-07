@@ -2,9 +2,11 @@ angular
 backbone
 bootstrap
 cordova
+django
 elm
 ember
 firebase
+flask
 fontawesome
 fonts.google
 iconify
@@ -12,8 +14,11 @@ ionic
 jquery
 laravel
 localstorage
+lodash
+manifest
 materialdesignicons
 mdi
+meteor
 octicons
 react
 select2
@@ -23,6 +28,8 @@ sphinx
 svg
 tailwind
 typicons
+underscore
 vue
-manifest
 webpack
+websocket
+zend
