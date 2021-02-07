@@ -104,13 +104,17 @@ def check_headers(url):
     """Check headers"""
     h = get_headers(url)
     vulns = {
-        'xct': 'nosniff' not in h.get('X-Content-Type-Options', ''),
-        'mitm': not h.get('Strict-Transport-Security', False),
         'csp': not h.get('Content-Security-Policy', False),
+        'mitm': not h.get('Strict-Transport-Security', False),
+        'xct': 'nosniff' not in h.get('X-Content-Type-Options', ''),
+        'xframe': not h.get('X-Frame-Options', False),
+        'xss': not h.get('X-XSS-Protection', False),
     }
     vulns = filter(lambda v: v[1], vulns)
+
     for hk, hv in h.items():
         print(f'{CYELLOW}  - {hk}: {hv}{CEND}')
+
     if vulns:
         print(f'\n{CGREEN}  [i] Client side vulns:{CEND}')
         for hk in vulns:
