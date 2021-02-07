@@ -17,7 +17,7 @@ hdrs = [
     'Content-Security-Policy',
 ]
 
-cmses = [
+CMS_LIST = [
     'buttercms',
     'contao',
     'craft cms',
@@ -35,7 +35,7 @@ cmses = [
     'yii',
 ]
 
-techs = [
+TECH_LIST = [
     'angular',
     'backbone',
     'bootstrap',
@@ -76,12 +76,12 @@ def check_path(url):
         return False
 
 
-def check_src(url):
+def check_src(url, inclusions):
     with urlopen(url) as u:
         html = u.read().decode().lower()
-        for tech in cmses + techs:
-            if tech in html:
-                yield tech
+        for item in inclusions:
+            if item in html:
+                yield item
 
 
 with open('web_files.txt') as f:
@@ -95,50 +95,78 @@ def interruptable(fn):
         except KeyboardInterrupt:
             print('[i] Interrupted by user. Exiting.\n')
             exit(130)
+    wrap.__doc__ = fn.__doc__
     return wrap
 
 
 @interruptable
 def check_headers(url):
-    print(f'{CDGREY}[*] Check headers...{CEND}\n')
+    """Check headers"""
     h = get_headers(url)
-    xct = 'nosniff' not in h.get('X-Content-Type-Options', '')
-    mitm = not h.get('Strict-Transport-Security', False)
-    csp = not h.get('Content-Security-Policy', False)
+    vulns = {
+        'xct': 'nosniff' not in h.get('X-Content-Type-Options', ''),
+        'mitm': not h.get('Strict-Transport-Security', False),
+        'csp': not h.get('Content-Security-Policy', False),
+    }
+    vulns = filter(lambda v: v[1], vulns)
     for hk, hv in h.items():
-        print(f'{CYELLOW}- {hk}: {hv}{CEND}\n')
-    print(f'{CGREEN}[i] Vulns: xct {xct}, mitm {mitm}, csp {csp}{CEND}\n')
+        print(f'{CYELLOW}  - {hk}: {hv}{CEND}')
+    if vulns:
+        print(f'\n{CGREEN}  [i] Client side vulns:{CEND}')
+        for hk in vulns:
+            print(f'{CYELLOW}  - {hk}{CEND}')
+    else:
+        print(f'\n{CDGREY}  [i] No client side vulns{CEND}')
+
+
+@interruptable
+def check_cms(url):
+    """Check CMS"""
+    cmses = check_src(url, CMS_LIST)
+    if cmses:
+        for c in cmses:
+            print(f'{CYELLOW}  - {c}{CEND}')
+    else:
+        print(f'{CGREY}  [i] No tech found{CEND}')
 
 
 @interruptable
 def check_techs(url):
-    print(f'{CDGREY}[*] Check techs...{CEND}\n')
-
-    techs = check_src(url)
+    """Check techs"""
+    techs = check_src(url, TECH_LIST)
     if techs:
         for tech in techs:
-            print(f'{CYELLOW}- {tech}{CEND}')
+            print(f'{CYELLOW}  - {tech}{CEND}')
     else:
-        print(f'{CGREY}[i] No tech found{CEND}')
+        print(f'{CGREY}  [i] No tech found{CEND}')
 
 
 @interruptable
 def check_vulns(url):
-    print(f'\n{CDGREY}[*] Check vulns...{CEND}\n')
+    """Check vulns"""
     for vp in vuln_paths:
         if check_path(f'{url}/{vp}'):
-            print(f'\n{CGREEN}[+] {vp}{CEND}')
+            print(f'\n{CGREEN}  [+] {vp}{CEND}')
         else:
             print(f'{CGREY}.{CEND}', end='', flush=True)
 
 
 def main(url):
+    print('='*40)
+    print(f'Map CMS for {url}')
+    print('='*40)
     print()
-    print(f'Map CMS for {url}\n')
 
-    check_headers(url)
-    check_techs(url)
-    check_vulns(url)
+    tasks = [
+        check_headers,
+        check_cms,
+        check_techs,
+        check_vulns,
+    ]
+
+    for task in tasks:
+        print(f'\n{CGREY}{task.__doc__}{CEND}\n')
+        task(url)
 
 
 if __name__ == "__main__":
