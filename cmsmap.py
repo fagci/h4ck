@@ -1,16 +1,62 @@
+#!/usr/bin/env python
 from urllib.request import urlopen
 import sys
 
-CRED = '\033[91m'
-CGREEN = '\033[92m'
-CYELLOW = '\033[93m'
-CGREY = '\033[90m'
+CRED = '\033[31m'
+CGREEN = '\033[32m'
+CYELLOW = '\033[33m'
+CGREY = '\033[37m'
+CDGREY = '\033[90m'
 CEND = '\033[0m'
 
+cmses = [
+    'buttercms',
+    'contao',
+    'craft cms',
+    'drupal',
+    'expressionengine',
+    'joomla',
+    'magento',
+    'neos cms',
+    'octobercms',
+    'opencart',
+    'processwire',
+    'pyrocms',
+    'typo3',
+    'wordpress',
+    'yii',
+]
 
-def get_server(url):
+techs = [
+    'angular',
+    'backbone',
+    'bootstrap',
+    'cordova',
+    'elm',
+    'ember',
+    'firebase',
+    'fontawesome',
+    'ionic',
+    'jquery',
+    'laravel',
+    'localstorage',
+    'react',
+    'select2',
+    'serviceworker',
+    'socketio',
+    'sphinx',
+    'svg',
+    'tailwind',
+    'vue',
+    'webpack',
+]
+
+
+def get_headers(url):
+    hdrs = ['Server', 'X-Powered-By']
     with urlopen(url) as u:
-        return u.info().get('Server')
+        items = u.info().items()
+        return {hk: hv for hk, hv in items if hk in hdrs}
 
 
 def check_path(url):
@@ -20,51 +66,10 @@ def check_path(url):
     except KeyboardInterrupt:
         raise
     except:
-        pass
+        return False
 
 
 def check_src(url):
-    cmses = [
-        'yii',
-        'wordpress',
-        'magento',
-        'drupal',
-        'joomla',
-        'opencart',
-        'expressionengine',
-        'pyrocms',
-        'octobercms',
-        'craft cms',
-        'typo3',
-        'contao',
-        'neos cms',
-        'processwire',
-        'buttercms',
-
-    ]
-    techs = [
-        'jquery',
-        'select2',
-        'angular',
-        'vue',
-        'bootstrap',
-        'fontawesome',
-        'socketio',
-        'localstorage',
-        'serviceworker',
-        'react',
-        'webpack',
-        'svg',
-        'ionic',
-        'elm',
-        'tailwind',
-        'laravel',
-        'sphinx',
-        'ember',
-        'backbone',
-        'cordova',
-        'firebase',
-    ]
     with urlopen(url) as u:
         html = u.read().decode().lower()
         for tech in cmses + techs:
@@ -76,17 +81,53 @@ with open('web_files.txt') as f:
     vuln_paths = [p.rstrip() for p in f]
 
 
-def main(url):
-    print('[*] Check techs...\n')
-    for tech in check_src(url):
-        print(f'{CYELLOW}[i] {tech}{CEND}')
+def interruptable(fn):
+    def wrap(*args, **kwargs):
+        try:
+            fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            print('[i] Interrupted by user. Exiting.\n')
+            exit(130)
+    return wrap
 
-    print('\n[*] Check vulns...\n')
+
+@interruptable
+def check_headers(url):
+    print(f'{CDGREY}[*] Check headers...{CEND}\n')
+    headers = get_headers(url)
+    for hk, hv in headers.items():
+        print(f'{CYELLOW}- {hk}: {hv}{CEND}\n')
+
+
+@interruptable
+def check_techs(url):
+    print(f'{CDGREY}[*] Check techs...{CEND}\n')
+
+    techs = check_src(url)
+    if techs:
+        for tech in techs:
+            print(f'{CYELLOW}- {tech}{CEND}')
+    else:
+        print(f'{CGREY}[i] No tech found{CEND}')
+
+
+@interruptable
+def check_vulns(url):
+    print(f'\n{CDGREY}[*] Check vulns...{CEND}\n')
     for vp in vuln_paths:
         if check_path(f'{url}/{vp}'):
-            print(f'{CGREEN}[+] {vp}{CEND}')
+            print(f'\n{CGREEN}[+] {vp}{CEND}')
         else:
-            print(f'{CGREY}[-] {vp}{CEND}')
+            print(f'{CGREY}.{CEND}', end='', flush=True)
+
+
+def main(url):
+    print()
+    print(f'Map CMS for {url}\n')
+
+    check_headers(url)
+    check_techs(url)
+    check_vulns(url)
 
 
 if __name__ == "__main__":
