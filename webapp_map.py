@@ -75,11 +75,11 @@ def get_headers(url):
 
 def check_path(url):
     try:
-        with urlopen(url, timeout=1.2) as u:
+        with urlopen(url, timeout=3) as u:
             return u.getcode() == 200
     except KeyboardInterrupt:
         raise
-    except (URLError, HTTPError):
+    except:
         return False
 
 
