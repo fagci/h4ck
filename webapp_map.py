@@ -2,7 +2,6 @@
 import sys
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
-from concurrent.futures import ThreadPoolExecutor
 
 CRED = '\033[31m'
 CGREEN = '\033[32m'
@@ -35,12 +34,12 @@ def get_headers(url):
         raise
     except (URLError, HTTPError) as e:
         print(f'{CRED}[!!] {e}{CEND}')
-        exit(e.errno)
+        sys.exit(e.errno)
 
 
 def check_path(url):
     try:
-        with urlopen(url, timeout=3) as u:
+        with urlopen(url, timeout=5) as u:
             return url if u.getcode() == 200 else None
     except KeyboardInterrupt:
         raise
@@ -58,27 +57,35 @@ def check_src(url, inclusions):
                     yield item
     except (URLError, HTTPError) as e:
         print(f'{CRED}[!!] {e}{CEND}')
-        exit(e.errno)
+        sys.exit(e.errno)
 
 
-class Spinner:
-    i = 0
+class Progress:
     prg = '|/-\\'
     prg_len = len(prg)
 
-    def __init__(self, total=None):
+    def __init__(self, total=0):
+        self.i = 0
         self.total = total
+        self.val = ''
+        self.update = self._progress if total else self._spin
+
+    def _spin(self):
+        self.i %= self.prg_len
+        self.val = self.prg[self.i]
+
+    def _progress(self):
+        self.val = f'{int(self.i*100/self.total)}%'
 
     def __call__(self):
         self.i += 1
-        if self.total:
-            val = f'{int(self.i*100/self.total)}%'
-        else:
-            self.i %= self.prg_len
-            val = self.prg[self.i]
-        print(f'\r     ', end='', flush=self.total == self.i)
-        if self.total != self.i:
-            print(f'\r{CGREY}{val}{CEND}', end='', flush=True)
+        self.update()
+        print(f'\r    \r{self.val}', end='', flush=True)
+        if self.total != 0 and self.total == self.i:
+            self.__del__()
+
+    def __del__(self):
+        print('\r    ', end='', flush=True)
 
 
 def interruptable(fn):
@@ -87,7 +94,7 @@ def interruptable(fn):
             fn(*args, **kwargs)
         except KeyboardInterrupt:
             print('[i] Interrupted by user. Exiting.\n')
-            exit(130)
+            sys.exit(130)
     wrap.__doc__ = fn.__doc__
     return wrap
 
@@ -141,6 +148,7 @@ def check_techs(url):
 @interruptable
 def check_vulns(url):
     """Check vulns"""
+    from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor() as ex:
         urlen = len(url) + 1
         for file in FUZZ_FILES:
@@ -148,7 +156,7 @@ def check_vulns(url):
             with open(file) as f:
                 count = sum(1 for _ in f)
                 f.seek(0)
-                progress = Spinner(count)
+                progress = Progress(count)
                 ff = (f'{url}/{ln.rstrip()}' for ln in f)
                 for rurl in ex.map(check_path, ff):
                     if rurl:
