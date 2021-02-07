@@ -35,37 +35,11 @@ CMS_LIST = [
     'wordpress',
     'yii',
 ]
+with open('data/web_files.txt') as f:
+    vuln_paths = [p.rstrip() for p in f]
 
-TECH_LIST = [
-    'angular',
-    'backbone',
-    'bootstrap',
-    'cordova',
-    'elm',
-    'ember',
-    'firebase',
-    'fontawesome',
-    'fonts.google',
-    'iconify',
-    'ionic',
-    'jquery',
-    'laravel',
-    'localstorage',
-    'materialdesignicons',
-    'mdi',
-    'octicons',
-    'react',
-    'select2',
-    'serviceworker',
-    'socketio',
-    'sphinx',
-    'svg',
-    'tailwind',
-    'typicons',
-    'vue',
-    'manifest',
-    'webpack',
-]
+with open('data/web_tech.txt') as f:
+    TECH_LIST = [p.rstrip() for p in f]
 
 
 def get_headers(url):
@@ -100,10 +74,6 @@ def check_src(url, inclusions):
     except (URLError, HTTPError) as e:
         print(f'{CRED}[!!] {e}{CEND}')
         exit(e.errno)
-
-
-with open('data/web_files.txt') as f:
-    vuln_paths = [p.rstrip() for p in f]
 
 
 def interruptable(fn):
