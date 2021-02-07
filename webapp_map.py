@@ -66,7 +66,7 @@ class Spinner:
     prg = '|/-\\'
     prg_len = len(prg)
 
-    def __init__(self, total):
+    def __init__(self, total=None):
         self.total = total
 
     def __call__(self):
@@ -76,7 +76,9 @@ class Spinner:
         else:
             self.i %= self.prg_len
             val = self.prg[self.i]
-        print(f'\r     \r{CGREY}{val}{CEND}', end='', flush=True)
+        print(f'\r     ', end='', flush=self.total == self.i)
+        if self.total != self.i:
+            print(f'\r{CGREY}{val}{CEND}', end='', flush=True)
 
 
 def interruptable(fn):
