@@ -2,6 +2,7 @@
 import sys
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+from concurrent.futures import ThreadPoolExecutor
 
 CRED = '\033[31m'
 CGREEN = '\033[32m'
@@ -35,11 +36,11 @@ def get_headers(url):
 def check_path(url):
     try:
         with urlopen(url, timeout=3) as u:
-            return u.getcode() == 200
+            return url if u.getcode() == 200 else None
     except KeyboardInterrupt:
         raise
     except:
-        return False
+        pass
 
 
 def check_src(url, inclusions):
@@ -126,20 +127,15 @@ def check_techs(url):
 @interruptable
 def check_vulns(url):
     """Check vulns"""
-    progress = Spinner()
-    with open('data/web_misconfig.txt') as f:
-        for ln in f:
-            vp = ln.rstrip()
-            if check_path(f'{url}/{vp}'):
-                print(f'\r{CGREEN}  [+] {vp}{CEND}')
-            progress()
-    print(f'\n{CDGREY}  [*] Check 2{CEND}')
-    with open('data/web_sensitive.txt') as f:
-        for ln in f:
-            vp = ln.rstrip()
-            if check_path(f'{url}/{vp}'):
-                print(f'\r{CGREEN}  [+] {vp}{CEND}')
-            progress()
+    with ThreadPoolExecutor() as ex:
+        progress = Spinner()
+        urlen = len(url) + 1
+        with open('data/web_fuzz.txt') as f:
+            ff = (f'{url}/{ln.rstrip()}' for ln in f)
+            for rurl in ex.map(check_path, ff):
+                if rurl:
+                    print(f'\r{CGREEN}  [+] {rurl[urlen:]}{CEND}')
+                progress()
 
 
 def iri_to_uri(iri):
