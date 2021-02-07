@@ -116,10 +116,10 @@ def check_headers(url):
         print(f'{CYELLOW}{hk}: {hv}{CEND}')
 
     if vulns:
-        print(f'{CGREEN}[i] Client side vulns:')
+        print(f'{CDGREY}[i] Client side vulns:')
         print(f'{", ".join(v[0] for v in vulns)}{CEND}')
     else:
-        print(f'{CGREEN}[i] No client side vulns{CEND}')
+        print(f'{CDGREY}[i] No client side vulns{CEND}')
 
 
 @interruptable
@@ -174,9 +174,15 @@ def iri_to_uri(iri):
 
 
 def main(url):
-    print('='*40)
-    print(f'Map web app: {url}')
-    print('='*40)
+    print('='*42)
+    print(
+        r"""__      _____| |__  _ __ ___   __ _ _ __
+\ \ /\ / / _ \ '_ \| '_ ` _ \ / _` | '_ \
+ \ V  V /  __/ |_) | | | | | | (_| | |_) |
+  \_/\_/ \___|_.__/|_| |_| |_|\__,_| .__/
+                                   |_|""")
+    print(f'Target: {url}')
+    print('='*42)
 
     tasks = [
         check_headers,
