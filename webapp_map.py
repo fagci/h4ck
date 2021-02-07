@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 import sys
 
 CRED = '\033[31m'
@@ -61,9 +62,15 @@ TECH_LIST = [
 
 
 def get_headers(url):
-    with urlopen(url) as u:
-        items = u.info().items()
-        return {hk: hv for hk, hv in items if hk in hdrs}
+    try:
+        with urlopen(url, timeout=5) as u:
+            items = u.info().items()
+            return {hk: hv for hk, hv in items if hk in hdrs}
+    except KeyboardInterrupt:
+        raise
+    except (URLError, HTTPError) as e:
+        print(f'{CRED}[!!] {e}{CEND}')
+        exit(e.errno)
 
 
 def check_path(url):
@@ -72,19 +79,23 @@ def check_path(url):
             return u.getcode() == 200
     except KeyboardInterrupt:
         raise
-    except:
+    except (URLError, HTTPError):
         return False
 
 
 def check_src(url, inclusions):
-    with urlopen(url) as u:
-        html = u.read().decode().lower()
-        for item in inclusions:
-            if item in html:
-                yield item
+    try:
+        with urlopen(url, timeout=5) as u:
+            html = u.read().decode().lower()
+            for item in inclusions:
+                if item in html:
+                    yield item
+    except (URLError, HTTPError) as e:
+        print(f'{CRED}[!!] {e}{CEND}')
+        exit(e.errno)
 
 
-with open('web_files.txt') as f:
+with open('data/web_files.txt') as f:
     vuln_paths = [p.rstrip() for p in f]
 
 
@@ -159,7 +170,6 @@ def main(url):
     print('='*40)
     print(f'Map CMS for {url}')
     print('='*40)
-    print()
 
     tasks = [
         check_headers,
