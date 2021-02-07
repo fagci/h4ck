@@ -149,11 +149,10 @@ def check_vulns(url):
     with ThreadPoolExecutor() as ex:
         urlen = len(url) + 1
         for file in FUZZ_FILES:
-            print(f'  [*] Fuzz {file}...\n')
+            print(f'\n  [*] Fuzz {file}...\n')
             with open(file) as f:
-                count = sum(1 for _ in f)
+                progress = Progress(sum(1 for _ in f))
                 f.seek(0)
-                progress = Progress(count)
                 ff = (f'{url}/{ln.rstrip()}' for ln in f)
                 for rurl in ex.map(check_path, ff):
                     if rurl:
