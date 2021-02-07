@@ -11,6 +11,11 @@ CGREY = '\033[37m'
 CDGREY = '\033[90m'
 CEND = '\033[0m'
 
+FUZZ_FILES = [
+    'data/web_fuzz.txt',
+    'data/web_dir_fuzz.txt',
+]
+
 with open('data/web_headers.txt') as f:
     HEADER_LIST = [p.rstrip() for p in f]
 
@@ -61,10 +66,17 @@ class Spinner:
     prg = '|/-\\'
     prg_len = len(prg)
 
+    def __init__(self, total):
+        self.total = total
+
     def __call__(self):
         self.i += 1
-        self.i %= self.prg_len
-        print(f'\r{CGREY}{self.prg[self.i]}{CEND}', end='', flush=True)
+        if self.total:
+            val = f'{int(self.i*100/self.total)}%'
+        else:
+            self.i %= self.prg_len
+            val = self.prg[self.i]
+        print(f'\r     \r{CGREY}{val}{CEND}', end='', flush=True)
 
 
 def interruptable(fn):
@@ -128,14 +140,18 @@ def check_techs(url):
 def check_vulns(url):
     """Check vulns"""
     with ThreadPoolExecutor() as ex:
-        progress = Spinner()
         urlen = len(url) + 1
-        with open('data/web_fuzz.txt') as f:
-            ff = (f'{url}/{ln.rstrip()}' for ln in f)
-            for rurl in ex.map(check_path, ff):
-                if rurl:
-                    print(f'\r{CGREEN}  [+] {rurl[urlen:]}{CEND}')
-                progress()
+        for file in FUZZ_FILES:
+            print(f'\n  [*] Fuzz {file}...\n')
+            with open(file) as f:
+                count = sum(1 for _ in f)
+                f.seek(0)
+                progress = Spinner(count)
+                ff = (f'{url}/{ln.rstrip()}' for ln in f)
+                for rurl in ex.map(check_path, ff):
+                    if rurl:
+                        print(f'\r{CGREEN}  [+] {rurl[urlen:]}{CEND}')
+                    progress()
 
 
 def iri_to_uri(iri):
