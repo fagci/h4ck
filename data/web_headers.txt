@@ -1,0 +1,5 @@
+Server
+X-Powered-By
+X-Content-Type-Options
+Strict-Transport-Security
+Content-Security-Policy

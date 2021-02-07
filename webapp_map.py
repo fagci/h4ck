@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from urllib.request import urlopen
-from urllib.error import URLError, HTTPError
 import sys
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 CRED = '\033[31m'
 CGREEN = '\033[32m'
@@ -10,33 +10,11 @@ CGREY = '\033[37m'
 CDGREY = '\033[90m'
 CEND = '\033[0m'
 
-hdrs = [
-    'Server',
-    'X-Powered-By'
-    'X-Content-Type-Options',
-    'Strict-Transport-Security',
-    'Content-Security-Policy',
-]
+with open('data/web_headers.txt') as f:
+    HEADER_LIST = [p.rstrip() for p in f]
 
-CMS_LIST = [
-    'buttercms',
-    'contao',
-    'craft cms',
-    'drupal',
-    'expressionengine',
-    'joomla',
-    'magento',
-    'neos cms',
-    'octobercms',
-    'opencart',
-    'processwire',
-    'pyrocms',
-    'typo3',
-    'wordpress',
-    'yii',
-]
-with open('data/web_files.txt') as f:
-    vuln_paths = [p.rstrip() for p in f]
+with open('data/web_cms.txt') as f:
+    CMS_LIST = [p.rstrip() for p in f]
 
 with open('data/web_tech.txt') as f:
     TECH_LIST = [p.rstrip() for p in f]
@@ -46,7 +24,7 @@ def get_headers(url):
     try:
         with urlopen(url, timeout=5) as u:
             items = u.info().items()
-            return {hk: hv for hk, hv in items if hk in hdrs}
+            return {hk: hv for hk, hv in items if hk in HEADER_LIST}
     except KeyboardInterrupt:
         raise
     except (URLError, HTTPError) as e:
@@ -136,11 +114,13 @@ def check_techs(url):
 @interruptable
 def check_vulns(url):
     """Check vulns"""
-    for vp in vuln_paths:
-        if check_path(f'{url}/{vp}'):
-            print(f'\n{CGREEN}  [+] {vp}{CEND}')
-        else:
-            print(f'{CGREY}.{CEND}', end='', flush=True)
+    with open('data/web_files.txt') as f:
+        for ln in f:
+            vp = ln.rstrip()
+            if check_path(f'{url}/{vp}'):
+                print(f'\n{CGREEN}  [+] {vp}{CEND}')
+            else:
+                print(f'{CGREY}.{CEND}', end='', flush=True)
 
 
 def iri_to_uri(iri):
