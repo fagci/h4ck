@@ -93,7 +93,7 @@ def interruptable(fn):
         try:
             fn(*args, **kwargs)
         except KeyboardInterrupt:
-            print('\n  [i] Interrupted by user. Exiting.\n')
+            print('\n[i] Interrupted by user. Exiting.')
             sys.exit(130)
     wrap.__doc__ = fn.__doc__
     return wrap
@@ -113,13 +113,13 @@ def check_headers(url):
     vulns = filter(lambda v: v[1], vulns.items())
 
     for hk, hv in h.items():
-        print(f'{CYELLOW}  {hk}: {hv}{CEND}')
+        print(f'{CYELLOW}{hk}: {hv}{CEND}')
 
     if vulns:
-        print(f'\n{CGREEN}  [i] Client side vulns:{CEND}')
-        print(f'{CYELLOW}  {", ".join(v[0] for v in vulns)}{CEND}')
+        print(f'{CGREEN}[i] Client side vulns:')
+        print(f'{", ".join(v[0] for v in vulns)}{CEND}')
     else:
-        print(f'\n{CDGREY}  [i] No client side vulns{CEND}')
+        print(f'{CGREEN}[i] No client side vulns{CEND}')
 
 
 @interruptable
@@ -127,9 +127,9 @@ def check_cms(url):
     """Check CMS"""
     cmses = list(check_src(url, CMS_LIST))
     if cmses:
-        print(f'{CYELLOW}  {", ".join(c for c in cmses)}{CEND}')
+        print(f'{CYELLOW}{", ".join(c for c in cmses)}{CEND}')
     else:
-        print(f'{CGREY}  [i] No CMS found in source{CEND}')
+        print(f'{CGREY}[-] No CMS found in source{CEND}')
 
 
 @interruptable
@@ -137,9 +137,9 @@ def check_techs(url):
     """Check techs"""
     techs = list(check_src(url, TECH_LIST))
     if techs:
-        print(f'{CYELLOW}  {", ".join(t for t in techs)}{CEND}')
+        print(f'{CYELLOW}{", ".join(t for t in techs)}{CEND}')
     else:
-        print(f'{CGREY}  [i] No tech found{CEND}')
+        print(f'{CGREY}[-] No tech found{CEND}')
 
 
 @interruptable
@@ -149,14 +149,14 @@ def check_vulns(url):
     with ThreadPoolExecutor() as ex:
         urlen = len(url) + 1
         for file in FUZZ_FILES:
-            print(f'\n  [*] Fuzz {file}...\n')
+            print(f'[*] Fuzz {file}...')
             with open(file) as f:
                 progress = Progress(sum(1 for _ in f))
                 f.seek(0)
                 ff = (f'{url}/{ln.rstrip()}' for ln in f)
                 for rurl in ex.map(check_path, ff):
                     if rurl:
-                        print(f'\r{CGREEN}  [+] {rurl[urlen:]}{CEND}')
+                        print(f'\r{CGREEN}[+] {rurl[urlen:]}{CEND}')
                     progress()
 
 
@@ -188,7 +188,7 @@ def main(url):
     url = iri_to_uri(url)
 
     for task in tasks:
-        print(f'\n{CGREY}{task.__doc__}{CEND}\n')
+        print(f'\n{task.__doc__}')
         task(url)
 
 
