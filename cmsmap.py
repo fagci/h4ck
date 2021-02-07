@@ -9,6 +9,14 @@ CGREY = '\033[37m'
 CDGREY = '\033[90m'
 CEND = '\033[0m'
 
+hdrs = [
+    'Server',
+    'X-Powered-By'
+    'X-Content-Type-Options',
+    'Strict-Transport-Security',
+    'Content-Security-Policy',
+]
+
 cmses = [
     'buttercms',
     'contao',
@@ -53,7 +61,6 @@ techs = [
 
 
 def get_headers(url):
-    hdrs = ['Server', 'X-Powered-By']
     with urlopen(url) as u:
         items = u.info().items()
         return {hk: hv for hk, hv in items if hk in hdrs}
@@ -94,9 +101,13 @@ def interruptable(fn):
 @interruptable
 def check_headers(url):
     print(f'{CDGREY}[*] Check headers...{CEND}\n')
-    headers = get_headers(url)
-    for hk, hv in headers.items():
+    h = get_headers(url)
+    xct = 'nosniff' not in h.get('X-Content-Type-Options', '')
+    mitm = not h.get('Strict-Transport-Security', False)
+    csp = not h.get('Content-Security-Policy', False)
+    for hk, hv in h.items():
         print(f'{CYELLOW}- {hk}: {hv}{CEND}\n')
+    print(f'{CGREEN}[i] Vulns: xct {xct}, mitm {mitm}, csp {csp}{CEND}\n')
 
 
 @interruptable
