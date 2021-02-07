@@ -114,13 +114,18 @@ def check_techs(url):
 @interruptable
 def check_vulns(url):
     """Check vulns"""
-    with open('data/web_files.txt') as f:
+    i = 0
+    prg = '|/-\\'
+    prg_len = len(prg)
+    with open('data/web_misconfig.txt') as f:
         for ln in f:
             vp = ln.rstrip()
+            i += 1
+            i %= prg_len
             if check_path(f'{url}/{vp}'):
-                print(f'\n{CGREEN}  [+] {vp}{CEND}')
+                print(f'\r{CGREEN}  [+] {vp}{CEND}')
             else:
-                print(f'{CGREY}.{CEND}', end='', flush=True)
+                print(f'\r{CGREY}{prg[i]}{CEND}', end='', flush=True)
 
 
 def iri_to_uri(iri):
@@ -138,7 +143,7 @@ def iri_to_uri(iri):
 
 def main(url):
     print('='*40)
-    print(f'Map CMS for {url}')
+    print(f'Map web app: {url}')
     print('='*40)
 
     tasks = [
