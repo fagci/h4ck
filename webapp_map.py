@@ -85,7 +85,7 @@ class Progress:
             self.__del__()
 
     def __del__(self):
-        print('\r    ', end='', flush=True)
+        print('\r    \r', end='', flush=True)
 
 
 def interruptable(fn):
@@ -93,7 +93,7 @@ def interruptable(fn):
         try:
             fn(*args, **kwargs)
         except KeyboardInterrupt:
-            print('[i] Interrupted by user. Exiting.\n')
+            print('\n  [i] Interrupted by user. Exiting.\n')
             sys.exit(130)
     wrap.__doc__ = fn.__doc__
     return wrap
@@ -113,12 +113,11 @@ def check_headers(url):
     vulns = filter(lambda v: v[1], vulns.items())
 
     for hk, hv in h.items():
-        print(f'{CYELLOW}  - {hk}: {hv}{CEND}')
+        print(f'{CYELLOW}  {hk}: {hv}{CEND}')
 
     if vulns:
         print(f'\n{CGREEN}  [i] Client side vulns:{CEND}')
-        for v in vulns:
-            print(f'{CYELLOW}  - {v[0]}{CEND}')
+        print(f'{CYELLOW}  {", ".join(v[0] for v in vulns)}{CEND}')
     else:
         print(f'\n{CDGREY}  [i] No client side vulns{CEND}')
 
@@ -128,8 +127,7 @@ def check_cms(url):
     """Check CMS"""
     cmses = list(check_src(url, CMS_LIST))
     if cmses:
-        for c in cmses:
-            print(f'{CYELLOW}  - {c}{CEND}')
+        print(f'{CYELLOW}  {", ".join(c for c in cmses)}{CEND}')
     else:
         print(f'{CGREY}  [i] No CMS found in source{CEND}')
 
@@ -139,8 +137,7 @@ def check_techs(url):
     """Check techs"""
     techs = list(check_src(url, TECH_LIST))
     if techs:
-        for tech in techs:
-            print(f'{CYELLOW}  - {tech}{CEND}')
+        print(f'{CYELLOW}  {", ".join(t for t in techs)}{CEND}')
     else:
         print(f'{CGREY}  [i] No tech found{CEND}')
 
@@ -152,7 +149,7 @@ def check_vulns(url):
     with ThreadPoolExecutor() as ex:
         urlen = len(url) + 1
         for file in FUZZ_FILES:
-            print(f'\n  [*] Fuzz {file}...\n')
+            print(f'  [*] Fuzz {file}...\n')
             with open(file) as f:
                 count = sum(1 for _ in f)
                 f.seek(0)
