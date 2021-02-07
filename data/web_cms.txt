@@ -1,15 +1,24 @@
+bitrix
+bolt
 buttercms
+cakephp
 contao
+craftcms
 craft cms
 drupal
 expressionengine
+ghost
 joomla
 magento
-neos cms
+neos
 octobercms
 opencart
+prestashop
 processwire
 pyrocms
+shopify
 typo3
+wix
+woocommerce
 wordpress
 yii
