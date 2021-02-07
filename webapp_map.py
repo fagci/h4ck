@@ -45,6 +45,7 @@ TECH_LIST = [
     'ember',
     'firebase',
     'fontawesome',
+    'iconify',
     'ionic',
     'jquery',
     'laravel',
@@ -121,15 +122,15 @@ def check_headers(url):
         'xframe': not h.get('X-Frame-Options', False),
         'xss': not h.get('X-XSS-Protection', False),
     }
-    vulns = filter(lambda v: v[1], vulns)
+    vulns = filter(lambda v: v[1], vulns.items())
 
     for hk, hv in h.items():
         print(f'{CYELLOW}  - {hk}: {hv}{CEND}')
 
     if vulns:
         print(f'\n{CGREEN}  [i] Client side vulns:{CEND}')
-        for hk in vulns:
-            print(f'{CYELLOW}  - {hk}{CEND}')
+        for v in vulns:
+            print(f'{CYELLOW}  - {v[0]}{CEND}')
     else:
         print(f'\n{CDGREY}  [i] No client side vulns{CEND}')
 
@@ -137,18 +138,18 @@ def check_headers(url):
 @interruptable
 def check_cms(url):
     """Check CMS"""
-    cmses = check_src(url, CMS_LIST)
+    cmses = list(check_src(url, CMS_LIST))
     if cmses:
         for c in cmses:
             print(f'{CYELLOW}  - {c}{CEND}')
     else:
-        print(f'{CGREY}  [i] No tech found{CEND}')
+        print(f'{CGREY}  [i] No CMS found in source{CEND}')
 
 
 @interruptable
 def check_techs(url):
     """Check techs"""
-    techs = check_src(url, TECH_LIST)
+    techs = list(check_src(url, TECH_LIST))
     if techs:
         for tech in techs:
             print(f'{CYELLOW}  - {tech}{CEND}')
@@ -166,6 +167,19 @@ def check_vulns(url):
             print(f'{CGREY}.{CEND}', end='', flush=True)
 
 
+def iri_to_uri(iri):
+    from urllib.parse import quote, urlsplit, urlunsplit
+    parts = urlsplit(iri)
+    uri = urlunsplit((
+        parts.scheme,
+        parts.netloc.encode('idna').decode('ascii'),
+        quote(parts.path),
+        quote(parts.query, '='),
+        quote(parts.fragment),
+    ))
+    return uri
+
+
 def main(url):
     print('='*40)
     print(f'Map CMS for {url}')
@@ -177,6 +191,8 @@ def main(url):
         check_techs,
         check_vulns,
     ]
+
+    url = iri_to_uri(url)
 
     for task in tasks:
         print(f'\n{CGREY}{task.__doc__}{CEND}\n')
