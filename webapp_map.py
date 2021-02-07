@@ -45,13 +45,25 @@ def check_path(url):
 def check_src(url, inclusions):
     try:
         with urlopen(url, timeout=5) as u:
-            html = u.read().decode().lower()
+            charset = u.info().get_content_charset()
+            html = u.read().decode(charset or 'utf-8', errors='ignore').lower()
             for item in inclusions:
                 if item in html:
                     yield item
     except (URLError, HTTPError) as e:
         print(f'{CRED}[!!] {e}{CEND}')
         exit(e.errno)
+
+
+class Spinner:
+    i = 0
+    prg = '|/-\\'
+    prg_len = len(prg)
+
+    def __call__(self):
+        self.i += 1
+        self.i %= self.prg_len
+        print(f'\r{CGREY}{self.prg[self.i]}{CEND}', end='', flush=True)
 
 
 def interruptable(fn):
@@ -114,18 +126,20 @@ def check_techs(url):
 @interruptable
 def check_vulns(url):
     """Check vulns"""
-    i = 0
-    prg = '|/-\\'
-    prg_len = len(prg)
+    progress = Spinner()
     with open('data/web_misconfig.txt') as f:
         for ln in f:
             vp = ln.rstrip()
-            i += 1
-            i %= prg_len
             if check_path(f'{url}/{vp}'):
                 print(f'\r{CGREEN}  [+] {vp}{CEND}')
-            else:
-                print(f'\r{CGREY}{prg[i]}{CEND}', end='', flush=True)
+            progress()
+    print(f'\n{CDGREY}  [*] Check 2{CEND}')
+    with open('data/web_sensitive.txt') as f:
+        for ln in f:
+            vp = ln.rstrip()
+            if check_path(f'{url}/{vp}'):
+                print(f'\r{CGREEN}  [+] {vp}{CEND}')
+            progress()
 
 
 def iri_to_uri(iri):
