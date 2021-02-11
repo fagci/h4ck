@@ -40,7 +40,7 @@ def check_port(ip, port):
 def get_meta(ip):
     from urllib.request import urlopen
     try:
-        with urlopen(f'http://{ip}', timeout=0.3) as f:
+        with urlopen(f'http://{ip}', timeout=1) as f:
             html = f.read(1024).decode()
             return title_re.findall(html)[0].strip().replace('\n', ' ').replace('\r', '')
     except:

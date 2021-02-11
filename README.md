@@ -5,3 +5,5 @@
 :exclamation: Only for education purposes. Use at your own risk.
 
 WIP =)
+
+![fagci's webmap results](webmap.png)
