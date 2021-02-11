@@ -1,18 +1,26 @@
 #!/usr/bin/env python
+"""Scan web application for CMS, used techs, vulns"""
 import sys
-from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
 
-CRED = '\033[31m'
-CGREEN = '\033[32m'
-CYELLOW = '\033[33m'
-CGREY = '\033[37m'
-CDGREY = '\033[90m'
-CEND = '\033[0m'
+import colorama
+from fire import Fire
+import requests
+
+from lib.http import iri_to_uri
+from lib.progress import Progress
+
+BANNER = r"""
+__      _____| |__  _ __ ___   __ _ _ __
+\ \ /\ / / _ \ '_ \| '_ ` _ \ / _` | '_ \
+ \ V  V /  __/ |_) | | | | | | (_| | |_) |
+  \_/\_/ \___|_.__/|_| |_| |_|\__,_| .__/
+                                   |_|"""
+
+# file, allow_html
 
 FUZZ_FILES = [
-    'data/web_fuzz.txt',
-    'data/web_dir_fuzz.txt',
+    ('data/web_fuzz.txt', False),
+    ('data/web_dir_fuzz.txt', True),
 ]
 
 with open('data/web_headers.txt') as f:
@@ -24,68 +32,29 @@ with open('data/web_cms.txt') as f:
 with open('data/web_tech.txt') as f:
     TECH_LIST = [p.rstrip() for p in f]
 
+CF = colorama.Fore
+CRED = CF.RED
+CGREEN = CF.GREEN
+CYELLOW = CF.YELLOW
+CGREY = CF.WHITE
+CDGREY = CF.LIGHTBLACK_EX
+CEND = CF.RESET
 
-def get_headers(url):
+
+def check_path(allow_html: bool, url: str):
     try:
-        with urlopen(url, timeout=5) as u:
-            items = u.info().items()
-            return {hk: hv for hk, hv in items if hk in HEADER_LIST}
+        r = requests.get(url, timeout=5, allow_redirects=False, verify=False)
+        if not allow_html and r.headers.get('Content-Type') == 'text/html':
+            return None
+        return url if r.status_code == 200 else None
     except KeyboardInterrupt:
         raise
-    except (URLError, HTTPError) as e:
-        print(f'{CRED}[!!] {e}{CEND}')
-        sys.exit(e.errno)
 
 
-def check_path(url):
-    try:
-        with urlopen(url, timeout=5) as u:
-            return url if u.getcode() == 200 else None
-    except KeyboardInterrupt:
-        raise
-    except:
-        pass
-
-
-def check_src(url, inclusions):
-    try:
-        with urlopen(url, timeout=5) as u:
-            charset = u.info().get_content_charset()
-            html = u.read().decode(charset or 'utf-8', errors='ignore').lower()
-            for item in inclusions:
-                if item in html:
-                    yield item
-    except (URLError, HTTPError) as e:
-        print(f'{CRED}[!!] {e}{CEND}')
-        sys.exit(e.errno)
-
-
-class Progress:
-    prg = '|/-\\'
-    prg_len = len(prg)
-
-    def __init__(self, total=0):
-        self.i = 0
-        self.total = total
-        self.val = ''
-        self.update = self._progress if total else self._spin
-
-    def _spin(self):
-        self.i %= self.prg_len
-        self.val = self.prg[self.i]
-
-    def _progress(self):
-        self.val = f'{int(self.i*100/self.total)}%'
-
-    def __call__(self):
-        self.i += 1
-        self.update()
-        print(f'\r    \r{self.val}', end='', flush=True)
-        if self.total != 0 and self.total == self.i:
-            self.__del__()
-
-    def __del__(self):
-        print('\r    \r', end='', flush=True)
+def check_src(html, inclusions):
+    for item in inclusions:
+        if item in html:
+            yield item
 
 
 def interruptable(fn):
@@ -100,9 +69,9 @@ def interruptable(fn):
 
 
 @interruptable
-def check_headers(url):
+def check_headers(_, r):
     """Check headers"""
-    h = get_headers(url)
+    h = r.headers
     vulns = {
         'csp': not h.get('Content-Security-Policy', False),
         'mitm': not h.get('Strict-Transport-Security', False),
@@ -110,10 +79,11 @@ def check_headers(url):
         'xframe': not h.get('X-Frame-Options', False),
         'xss': not h.get('X-XSS-Protection', False),
     }
-    vulns = filter(lambda v: v[1], vulns.items())
+    vulns = list(filter(lambda v: v[1], vulns.items()))
 
     for hk, hv in h.items():
-        print(f'{CYELLOW}{hk}: {hv}{CEND}')
+        if hk in HEADER_LIST:
+            print(f'{CYELLOW}{hk}: {hv}{CEND}')
 
     if vulns:
         print(f'{CDGREY}[i] Client side vulns:')
@@ -123,9 +93,9 @@ def check_headers(url):
 
 
 @interruptable
-def check_cms(url):
+def check_cms(_, r):
     """Check CMS"""
-    cmses = list(check_src(url, CMS_LIST))
+    cmses = list(check_src(r.text, CMS_LIST))
     if cmses:
         print(f'{CYELLOW}{", ".join(c for c in cmses)}{CEND}')
     else:
@@ -133,9 +103,9 @@ def check_cms(url):
 
 
 @interruptable
-def check_techs(url):
+def check_techs(_, r):
     """Check techs"""
-    techs = list(check_src(url, TECH_LIST))
+    techs = list(check_src(r.text, TECH_LIST))
     if techs:
         print(f'{CYELLOW}{", ".join(t for t in techs)}{CEND}')
     else:
@@ -143,44 +113,28 @@ def check_techs(url):
 
 
 @interruptable
-def check_vulns(url):
+def check_vulns(url, _):
     """Check vulns"""
+    from functools import partial
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor() as ex:
         urlen = len(url) + 1
-        for file in FUZZ_FILES:
+        for file, allow_html in FUZZ_FILES:
             print(f'[*] Fuzz {file}...')
             with open(file) as f:
                 progress = Progress(sum(1 for _ in f))
                 f.seek(0)
                 ff = (f'{url}/{ln.rstrip()}' for ln in f)
-                for rurl in ex.map(check_path, ff):
+                check = partial(check_path, allow_html)
+                for rurl in ex.map(check, ff):
                     if rurl:
                         print(f'\r{CGREEN}[+] {rurl[urlen:]}{CEND}')
                     progress()
 
 
-def iri_to_uri(iri):
-    from urllib.parse import quote, urlsplit, urlunsplit
-    parts = urlsplit(iri)
-    uri = urlunsplit((
-        parts.scheme,
-        parts.netloc.encode('idna').decode('ascii'),
-        quote(parts.path),
-        quote(parts.query, '='),
-        quote(parts.fragment),
-    ))
-    return uri
-
-
 def main(url):
     print('='*42)
-    print(
-        r"""__      _____| |__  _ __ ___   __ _ _ __
-\ \ /\ / / _ \ '_ \| '_ ` _ \ / _` | '_ \
- \ V  V /  __/ |_) | | | | | | (_| | |_) |
-  \_/\_/ \___|_.__/|_| |_| |_|\__,_| .__/
-                                   |_|""")
+    print(BANNER.strip())
     print(f'Target: {url}')
     print('='*42)
 
@@ -193,10 +147,14 @@ def main(url):
 
     url = iri_to_uri(url)
 
+    initial_response = requests.get(url, timeout=5, verify=False)
+
     for task in tasks:
         print(f'\n{task.__doc__}')
-        task(url)
+        task(url, initial_response)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import warnings
+    warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+    Fire(main)
