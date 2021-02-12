@@ -46,7 +46,8 @@ def check_url(ip, port, path):
     s = 'https' if port == 443 else 'http'
     url = f'{s}://{ip}/{path}'
     try:
-        r = get(url, allow_redirects=False, timeout=1, verify=False)
+        r = get(url, allow_redirects=False,
+                timeout=1, verify=False, stream=True)
         return r.status_code == 200
     except:
         return False

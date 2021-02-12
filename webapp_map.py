@@ -40,14 +40,17 @@ CGREY = CF.WHITE
 CDGREY = CF.LIGHTBLACK_EX
 CEND = CF.RESET
 
+session = requests.Session()
+
 
 @interruptable
 def check_path(allow_html: bool, url: str):
-    r = requests.get(url, timeout=5, allow_redirects=False, verify=False)
+    r = session.get(url, timeout=5, allow_redirects=False,
+                    verify=False, stream=True)
     if allow_html or r.headers.get('Content-Type') != 'text/html':
         if r.status_code == 200:
-            return True, url
-    return False, url
+            return True, url, r.headers.get('Content-Length')
+    return False, url, 0
 
 
 def check_src(text: str, inclusions):
@@ -103,19 +106,24 @@ def check_vulns(url, _):
     """Check vulns"""
     from functools import partial
     from concurrent.futures import ThreadPoolExecutor
+
     urlen = len(url) + 1
+
     for file, allow_html in FUZZ_FILES:
+
         print(f'[{tim()}][*] Fuzz {file}...')
+
         with open(file) as f:
             progress = Progress(sum(1 for _ in f))
             f.seek(0)
             ff = (f'{url}/{ln.rstrip()}' for ln in f)
             check = partial(check_path, allow_html)
+
             with ThreadPoolExecutor() as ex:
-                for r, rurl in ex.map(check, ff):
+                for r, rurl, cl in ex.map(check, ff):
                     path = rurl[urlen:]
                     if r:
-                        print(f'\r[{tim()}]{CGREEN}[+] {path}{CEND}')
+                        print(f'\r[{tim()}]{CGREEN}[+] ({cl}) {path}{CEND}')
                     progress(path)
 
 

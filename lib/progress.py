@@ -13,7 +13,7 @@ class Progress:
         self.val = self.prg[self.i]
 
     def _progress(self):
-        self.val = f'{int(self.i*100/self.total)}%'
+        self.val = f'{self.i*100/self.total:3.2f}%'
 
     def __call__(self, desc=''):
         self.i += 1
