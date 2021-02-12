@@ -45,11 +45,14 @@ session = requests.Session()
 
 @interruptable
 def check_path(allow_html: bool, url: str):
-    r = session.get(url, timeout=5, allow_redirects=False,
-                    verify=False, stream=True)
-    if allow_html or r.headers.get('Content-Type') != 'text/html':
-        if r.status_code == 200:
-            return True, url, r.headers.get('Content-Length')
+    try:
+        r = session.get(url, timeout=5, allow_redirects=False,
+                        verify=False, stream=True)
+        if allow_html or r.headers.get('Content-Type') != 'text/html':
+            if r.status_code == 200:
+                return True, url, r.headers.get('Content-Length')
+    except requests.ConnectionError as e:
+        print(f'{CRED}[!!]', e, CEND)
     return False, url, 0
 
 

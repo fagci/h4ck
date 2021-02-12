@@ -14,4 +14,4 @@ def interruptable(fn):
 
 def tim():
     from datetime import datetime
-    return datetime.now().strftime('%H:%I:%S')
+    return datetime.now().strftime('%H:%M:%S')
