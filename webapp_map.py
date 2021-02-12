@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Scan web application for CMS, used techs, vulns"""
-import sys
 
 import colorama
 from fire import Fire
@@ -8,6 +7,7 @@ import requests
 
 from lib.http import iri_to_uri
 from lib.progress import Progress
+from lib.utils import interruptable, tim
 
 BANNER = r"""
 __      _____| |__  _ __ ___   __ _ _ __
@@ -41,31 +41,17 @@ CDGREY = CF.LIGHTBLACK_EX
 CEND = CF.RESET
 
 
+@interruptable
 def check_path(allow_html: bool, url: str):
-    try:
-        r = requests.get(url, timeout=5, allow_redirects=False, verify=False)
-        if not allow_html and r.headers.get('Content-Type') == 'text/html':
-            return None
-        return url if r.status_code == 200 else None
-    except KeyboardInterrupt:
-        raise
+    r = requests.get(url, timeout=5, allow_redirects=False, verify=False)
+    if allow_html or r.headers.get('Content-Type') != 'text/html':
+        if r.status_code == 200:
+            return True, url
+    return False, url
 
 
-def check_src(html, inclusions):
-    for item in inclusions:
-        if item in html:
-            yield item
-
-
-def interruptable(fn):
-    def wrap(*args, **kwargs):
-        try:
-            fn(*args, **kwargs)
-        except KeyboardInterrupt:
-            print('\n[i] Interrupted by user. Exiting.')
-            sys.exit(130)
-    wrap.__doc__ = fn.__doc__
-    return wrap
+def check_src(text: str, inclusions):
+    return filter(lambda x: x in text, inclusions)
 
 
 @interruptable
@@ -117,19 +103,20 @@ def check_vulns(url, _):
     """Check vulns"""
     from functools import partial
     from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor() as ex:
-        urlen = len(url) + 1
-        for file, allow_html in FUZZ_FILES:
-            print(f'[*] Fuzz {file}...')
-            with open(file) as f:
-                progress = Progress(sum(1 for _ in f))
-                f.seek(0)
-                ff = (f'{url}/{ln.rstrip()}' for ln in f)
-                check = partial(check_path, allow_html)
-                for rurl in ex.map(check, ff):
-                    if rurl:
-                        print(f'\r{CGREEN}[+] {rurl[urlen:]}{CEND}')
-                    progress()
+    urlen = len(url) + 1
+    for file, allow_html in FUZZ_FILES:
+        print(f'[{tim()}][*] Fuzz {file}...')
+        with open(file) as f:
+            progress = Progress(sum(1 for _ in f))
+            f.seek(0)
+            ff = (f'{url}/{ln.rstrip()}' for ln in f)
+            check = partial(check_path, allow_html)
+            with ThreadPoolExecutor() as ex:
+                for r, rurl in ex.map(check, ff):
+                    path = rurl[urlen:]
+                    if r:
+                        print(f'\r[{tim()}]{CGREEN}[+] {path}{CEND}')
+                    progress(path)
 
 
 def main(url):
@@ -147,7 +134,11 @@ def main(url):
 
     url = iri_to_uri(url)
 
-    initial_response = requests.get(url, timeout=5, verify=False)
+    try:
+        initial_response = requests.get(url, timeout=5, verify=False)
+    except requests.ConnectionError as e:
+        print(f'{CRED}[!!]', e, CEND)
+        exit(e.errno)
 
     for task in tasks:
         print(f'\n{task.__doc__}')

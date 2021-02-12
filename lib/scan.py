@@ -1,10 +1,13 @@
 import socket as so
+import struct
 import warnings
 
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 PORTS_WEB = [80, 443]
 PORTS_MOST = [21, 22, 23, 25, *PORTS_WEB, 139, 445, 3306]
+
+linger = struct.pack('ii', 1, 0)
 
 
 def generate_ports(ports_list):
@@ -27,10 +30,11 @@ def generate_ips(count: int):
         yield ip
 
 
-def check_port(ip, port, timeout=0.2):
+def check_port(ip, port, timeout=0.25):
     while True:
         try:
             with so.socket() as s:
+                s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, linger)
                 s.settimeout(timeout)
                 return s.connect_ex((ip, port)) == 0
         except so.error:

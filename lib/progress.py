@@ -15,12 +15,12 @@ class Progress:
     def _progress(self):
         self.val = f'{int(self.i*100/self.total)}%'
 
-    def __call__(self):
+    def __call__(self, desc=''):
         self.i += 1
         self.update()
-        print(f'\r    \r{self.val}', end='', flush=True)
+        print(f'\r{self.val} {desc[-40:]}', end='\x1b[1K')
         if self.total != 0 and self.total == self.i:
             self.__del__()
 
     def __del__(self):
-        print('\r    \r', end='', flush=True)
+        print(f'\r', end='\x1b[1K\r', flush=True)
