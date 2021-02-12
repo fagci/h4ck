@@ -1,7 +1,9 @@
 #!/usr/bin/env -S python -u
 """My fastest python native implementation of IP http fortune"""
 import re
-from lib.scan import process, check_port, generate_ips
+from urllib.request import urlopen
+
+from lib.scan import check_port, generate_ips, process
 
 __author__ = 'Mikhail Yudin aka fagci'
 
@@ -9,7 +11,6 @@ title_re = re.compile(r'<title[^>]*>([^<]+)', re.IGNORECASE)
 
 
 def get_meta(ip):
-    from urllib.request import urlopen
     try:
         with urlopen(f'http://{ip}', timeout=1) as f:
             html = f.read(1024).decode()

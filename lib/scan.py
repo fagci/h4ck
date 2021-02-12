@@ -7,7 +7,7 @@ warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 PORTS_WEB = [80, 443]
 PORTS_MOST = [21, 22, 23, 25, *PORTS_WEB, 139, 445, 3306]
 
-linger = struct.pack('ii', 1, 0)
+LINGER = struct.pack('ii', 1, 0)
 
 
 def generate_ports(ports_list):
@@ -30,11 +30,12 @@ def generate_ips(count: int):
         yield ip
 
 
-def check_port(ip, port, timeout=0.25):
+def check_port(ip, port, timeout=0.18):
     while True:
         try:
             with so.socket() as s:
-                s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, linger)
+                # send only RST on close
+                s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
                 s.settimeout(timeout)
                 return s.connect_ex((ip, port)) == 0
         except so.error:
@@ -56,6 +57,8 @@ def check_url(ip, port, path):
 def get_banner(ip, port, timeout=0.5):
     try:
         with so.socket() as s:
+            # send only RST on close
+            s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
             s.settimeout(timeout)
             if s.connect_ex((ip, port)) == 0:
                 if port not in (21,):
@@ -71,6 +74,7 @@ def get_banner(ip, port, timeout=0.5):
 def process(fn, it, workers=16):
     from threading import Lock, Thread
     from time import sleep
+
     threads = []
     gen_lock = Lock()
     print_lock = Lock()
