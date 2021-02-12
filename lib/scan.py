@@ -4,7 +4,7 @@ import warnings
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 PORTS_WEB = [80, 443]
-PORTS_MOST = [21, 22, 23, 25, *PORTS_WEB, 139, 445, 3306, 8080, 8000]
+PORTS_MOST = [21, 22, 23, 25, *PORTS_WEB, 139, 445, 3306]
 
 
 def generate_ports(ports_list):
