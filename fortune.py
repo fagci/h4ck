@@ -13,8 +13,8 @@ title_re = re.compile(r'<title[^>]*>([^<]+)', re.IGNORECASE)
 def get_meta(ip):
     try:
         with urlopen(f'http://{ip}', timeout=1) as f:
-            html = f.read(1024).decode()
-            return title_re.findall(html)[0].strip().replace('\n', ' ').replace('\r', '')
+            html = f.read(1024).decode().replace('\n', ' ').replace('\r', '')
+            return title_re.findall(html)[0].strip()
     except:
         pass
 

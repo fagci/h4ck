@@ -1,0 +1,13 @@
+admin:12345
+1111:1111
+user:user
+admin:123456
+admin:00000000
+admin:1111
+admin:admin
+admin:4321
+admin:1111111
+admin:123123
+admin:qwerty
+admin:admin123
+administrator:

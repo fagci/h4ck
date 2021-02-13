@@ -71,7 +71,7 @@ def get_banner(ip, port, timeout=0.5):
         pass
 
 
-def process(fn, it, workers=16):
+def process(fn, it, workers=16, *args):
     from threading import Lock, Thread
     from time import sleep
 
@@ -80,7 +80,8 @@ def process(fn, it, workers=16):
     print_lock = Lock()
 
     for _ in range(workers):
-        t = Thread(target=fn, daemon=True, args=(it, gen_lock, print_lock,))
+        t = Thread(target=fn, daemon=True, args=(
+            it, gen_lock, print_lock, *args))
         threads.append(t)
 
     for t in threads:
