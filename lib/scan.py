@@ -1,5 +1,6 @@
 import socket as so
 import struct
+from time import sleep
 import warnings
 
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -16,18 +17,45 @@ def generate_ports(ports_list):
     return list(ports_list)
 
 
-def generate_ips(count: int):
-    from random import randrange
-    while count > 0:
-        a = randrange(1, 256)
-        b = randrange(0, 256)
-        c = randrange(0, 256)
-        d = randrange(1, 255)
-        ip = f'{a}.{b}.{c}.{d}'
-        if ip.startswith(('10.', '172.', '192.168.', '127.')):
-            continue
-        count -= 1
-        yield ip
+def randip():
+    """Get wide range random host IP"""
+    from random import randint
+    return so.inet_ntoa(struct.pack('>I', randint(1, 0xffffffff)))
+
+
+def generate_ips(count: int, bypass_local=True):
+    """Get wide range random host IPs"""
+    for _ in range(count):
+        if bypass_local:
+            while True:
+                ip = randip()
+                if ip.startswith((
+                    '10.',
+                    '169.254.',
+                    '172.16.',
+                    '172.17.',
+                    '172.18.',
+                    '172.19.',
+                    '172.20.',
+                    '172.21.',
+                    '172.22.',
+                    '172.23.',
+                    '172.24.',
+                    '172.25.',
+                    '172.26.',
+                    '172.27.',
+                    '172.28.',
+                    '172.29.',
+                    '172.30.',
+                    '172.31.',
+                    '192.168.',
+                    '127.'
+                )):
+                    continue
+                yield ip
+                break
+        else:
+            yield randip()
 
 
 def check_port(ip, port, timeout=0.18):
@@ -54,21 +82,27 @@ def check_url(ip, port, path):
         return False
 
 
-def get_banner(ip, port, timeout=0.5):
-    try:
-        with so.socket() as s:
-            # send only RST on close
-            s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
-            s.settimeout(timeout)
-            if s.connect_ex((ip, port)) == 0:
-                if port not in (21,):
-                    s.send('Hello\r\n'.encode())
-                banner = s.recv(1024).decode()
-                for ln in banner.splitlines():
-                    if any(x in ln.lower() for x in ('ssh', 'ftp', 'samba')) or (ln.strip()):
-                        return ln.strip()
-    except:
-        pass
+def get_banner(ip, port, timeout=0.5, send=None):
+    while True:
+        try:
+            with so.socket() as s:
+                # send only RST on close
+                s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
+                s.settimeout(timeout)
+                if s.connect_ex((ip, port)) == 0:
+                    if send:
+                        s.send(send)
+                    elif port not in (21,):
+                        s.send('Hello\r\n'.encode())
+                    banner = s.recv(1024).decode()
+                    for ln in banner.splitlines():
+                        if any(x in ln.lower() for x in ('ssh', 'ftp', 'samba')) or (ln.strip()):
+                            return ln.strip()
+        except OSError:
+            sleep(0.25)
+            continue
+        except:
+            return
 
 
 def process(fn, it, workers=16, *args):
