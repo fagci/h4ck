@@ -1,6 +1,7 @@
 import socket as so
 import struct
 from time import sleep
+from time import time
 import warnings
 
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -58,14 +59,16 @@ def generate_ips(count: int, bypass_local=True):
             yield randip()
 
 
-def check_port(ip, port, timeout=0.18):
+def check_port(ip, port, timeout=0.5):
     while True:
         try:
+            t = time()
             with so.socket() as s:
                 # send only RST on close
                 s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
                 s.settimeout(timeout)
-                return s.connect_ex((ip, port)) == 0
+                res = s.connect_ex((ip, port)) == 0
+                return (res, time() - t) if res else None
         except so.error:
             continue
 
@@ -82,7 +85,7 @@ def check_url(ip, port, path):
         return False
 
 
-def get_banner(ip, port, timeout=0.5, send=None):
+def get_banner(ip, port, timeout=1, send=None):
     while True:
         try:
             with so.socket() as s:

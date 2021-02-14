@@ -5,12 +5,13 @@ import socket as so
 from fire import Fire
 from concurrent.futures import ThreadPoolExecutor as TPE
 from functools import partial
+from lib.utils import tim
 
 
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
 
-def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
+def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 2):
     if cred:
         cred += '@'
     req = (
@@ -74,6 +75,8 @@ def check_host(host):
                     if '0h84d' in rr:
                         return
                     results.append(rr)
+                    with open('./local/rtsp.txt', 'a') as f:
+                        f.write(f'[{tim()}] {rr}\n')
 
         return results
 
@@ -83,7 +86,7 @@ def main():
         hosts = [ln.rstrip() for ln in f]
 
     with TPE(64) as ex:
-        for i, res in enumerate(ex.map(check_host, hosts)):
+        for i, res in enumerate(list(ex.map(check_host, hosts))):
             if res:
                 print()
                 print(f'[+ {i}]')
