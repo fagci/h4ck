@@ -1,4 +1,4 @@
-from lib.scan import check_port
+from lib.scan import check_port, get_banner
 
 if __name__ == "__main__":
-    print(check_port('68.2.95.245', 554, 5))
+    print(get_banner('104.128.117.176', 554, 5))

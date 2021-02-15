@@ -38,7 +38,7 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner):
                         continue
 
 
-def check_ips(port: int, count: int = 200000, workers: int = 1024, timeout=1, banner=None):
+def check_ips(port: int, count: int = 200000, workers: int = 2048, timeout=1, banner=None):
     ips = generate_ips(count)
     process(check_ip, ips, workers, port, timeout, banner)
 

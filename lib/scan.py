@@ -59,18 +59,25 @@ def generate_ips(count: int, bypass_local=True):
             yield randip()
 
 
-def check_port(ip, port, timeout=0.5):
+def check_port(ip, port, timeout=1):
+    target = (ip, port)
     while True:
         try:
-            t = time()
             with so.socket() as s:
                 # send only RST on close
                 s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
                 s.settimeout(timeout)
-                res = s.connect_ex((ip, port)) == 0
-                return (res, time() - t) if res else None
-        except so.error:
-            continue
+                t = time()
+                res = s.connect_ex(target) == 0
+                elapsed = time() - t
+                return (res, elapsed) if res else None
+        except KeyboardInterrupt:
+            raise
+        except OSError as e:
+            if e.errno == 24:
+                sleep(0.15)
+                continue
+            break
 
 
 def check_url(ip, port, path):
@@ -79,13 +86,13 @@ def check_url(ip, port, path):
     url = f'{s}://{ip}/{path}'
     try:
         r = get(url, allow_redirects=False,
-                timeout=1, verify=False, stream=True)
+                timeout=3, verify=False, stream=True)
         return r.status_code == 200
     except:
         return False
 
 
-def get_banner(ip, port, timeout=1, send=None):
+def get_banner(ip, port, timeout=5, send=None):
     while True:
         try:
             with so.socket() as s:
@@ -101,11 +108,11 @@ def get_banner(ip, port, timeout=1, send=None):
                     for ln in banner.splitlines():
                         if any(x in ln.lower() for x in ('ssh', 'ftp', 'samba')) or (ln.strip()):
                             return ln.strip()
-        except OSError:
-            sleep(0.25)
-            continue
-        except:
-            return
+        except OSError as e:
+            if e.errno == 24:
+                sleep(0.15)
+                continue
+            break
 
 
 def process(fn, it, workers=16, *args):
