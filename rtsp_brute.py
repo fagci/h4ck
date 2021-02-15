@@ -38,10 +38,11 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
         except so.timeout:
             return 503  # slowpoke, 3ff0ff
         except IOError as e:
-            # 104 reset by peer
             # 111 refused
             if e.errno == 111:
                 return 503
+
+            # 104 reset by peer
             if e.errno == 104:
                 if tries <= 0:
                     # print('u', end='', flush=True)
@@ -50,7 +51,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 tries -= 1
                 continue
             print(e)
-            sleep(0.25)  # potential  too many open files
+            sleep(0.15)  # potential  too many open files
         except KeyboardInterrupt:
             raise
         except IndexError:
@@ -70,15 +71,16 @@ def check_cred(host, port, path, cred):
         print('-', end='', flush=True)
         return
 
-    # print('.', end='', flush=True)
     return ''
 
 
 def check_path(host, port, path):
     code = rtsp_req(host, port, path)
+
     if code >= 500:
         print('-', end='', flush=True)
         return
+
     if code not in [200, 401, 403]:
         print('.', end='', flush=True)
         return ''
@@ -88,7 +90,7 @@ def check_path(host, port, path):
 
     ch = partial(check_cred, host, port, path)
 
-    with TPE(8) as ex:
+    with TPE(4) as ex:
         for res in ex.map(ch, creds):
             if res is None:
                 return
@@ -99,7 +101,7 @@ def check_path(host, port, path):
 def check_host(host):
     ch = partial(check_path, host, 554)
 
-    with TPE(1) as ex:
+    with TPE(2) as ex:
         with open('./data/rtsp_paths.txt') as f:
             paths = [ln.rstrip() for ln in f]
 
@@ -120,7 +122,7 @@ def main():
     with open('./local/hosts_554.txt') as f:
         hosts = [ln.rstrip() for ln in f]
 
-    with TPE(256) as ex:
+    with TPE(512) as ex:
         results = ex.map(check_host, hosts)
         for i, res in enumerate(list(results)):
             if res:
