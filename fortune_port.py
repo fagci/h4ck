@@ -8,7 +8,7 @@ from lib.scan import check_port, generate_ips, get_banner, process
 __author__ = 'Mikhail Yudin aka fagci'
 
 
-def check_ip(ips, gen_lock, print_lock, port, timeout, banner):
+def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double_check=False):
     while True:
         with gen_lock:
             try:
@@ -16,7 +16,8 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner):
             except StopIteration:
                 break
 
-        port_open_res = check_port(ip, port, timeout)
+        port_open_res = check_port(
+            ip, port, timeout, double_check=double_check)
         if port_open_res:
             b = ''
             if banner:
@@ -30,7 +31,7 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner):
                 print(f'{int(port_open_res[1]*1000):>4} ms', ip, b)
                 while True:
                     try:
-                        with open(f'./local/hosts_{port}.txt', 'a') as f:
+                        with open(file_path, 'a') as f:
                             f.write(f'{ip}\n')
                         break
                     except OSError:
@@ -38,9 +39,20 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner):
                         continue
 
 
-def check_ips(port: int, count: int = 200000, workers: int = 2048, timeout=1, banner=None):
+def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=3, banner=None, fresh=False, double_check=False):
+    file_path = f'./local/hosts_{port}.txt'
+    if fresh and input(f'Delete hosts_{port}.txt? y/n: ').lower() == 'y':
+        import os
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except FileNotFoundError:
+                print('No such file.')
+            else:
+                print('Removed.')
     ips = generate_ips(count)
-    process(check_ip, ips, workers, port, timeout, banner)
+    process(check_ip, ips, workers, port, timeout,
+            banner, file_path, double_check)
 
 
 if __name__ == "__main__":

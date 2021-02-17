@@ -59,7 +59,7 @@ def generate_ips(count: int, bypass_local=True):
             yield randip()
 
 
-def check_port(ip, port, timeout=1):
+def check_port(ip, port, timeout=1, double_check=False):
     target = (ip, port)
     while True:
         try:
@@ -69,6 +69,10 @@ def check_port(ip, port, timeout=1):
                 s.settimeout(timeout)
                 t = time()
                 res = s.connect_ex(target) == 0
+
+                if double_check and not res:
+                    double_check = False
+                    continue
                 elapsed = time() - t
                 return (res, elapsed) if res else None
         except KeyboardInterrupt:
@@ -92,7 +96,7 @@ def check_url(ip, port, path):
         return False
 
 
-def get_banner(ip, port, timeout=5, send=None):
+def get_banner(ip, port, timeout=3, send=None):
     while True:
         try:
             with so.socket() as s:
@@ -101,7 +105,7 @@ def get_banner(ip, port, timeout=5, send=None):
                 s.settimeout(timeout)
                 if s.connect_ex((ip, port)) == 0:
                     if send:
-                        s.send(send)
+                        s.send(send.encode())
                     elif port not in (21,):
                         s.send('Hello\r\n'.encode())
                     banner = s.recv(1024).decode()

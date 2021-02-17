@@ -18,7 +18,7 @@ def wrire_result(res):
         f.write(f'[{tim()}] {res}\n')
 
 
-def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 10):
+def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
     if cred:
         cred += '@'
     req = (
