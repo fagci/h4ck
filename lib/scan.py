@@ -66,6 +66,7 @@ def check_port(ip, port, timeout=1, double_check=False):
             with so.socket() as s:
                 # send only RST on close
                 s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
+                s.setsockopt(so.IPPROTO_TCP, so.TCP_NODELAY, 1)
                 s.settimeout(timeout)
                 t = time()
                 res = s.connect_ex(target) == 0

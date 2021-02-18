@@ -39,7 +39,7 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double
                         continue
 
 
-def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=3, banner=None, fresh=False, double_check=False):
+def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=1.5, banner=None, fresh=False, double_check=False):
     file_path = f'./local/hosts_{port}.txt'
     if fresh and input(f'Delete hosts_{port}.txt? y/n: ').lower() == 'y':
         import os
