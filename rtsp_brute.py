@@ -41,21 +41,25 @@ C_CAP_OK = 'C'
 C_CAP_ERR = '!'
 
 
+def capture(res):
+    import ffmpeg
+    scr = res.split('://')[1].replace('/', '-').replace(':', '_')
+
+    stream = ffmpeg.input(res, ss=0)
+    file = stream.output(f"local/{scr}.png", vframes=1)
+    try:
+        file.run(capture_stdout=True, capture_stderr=True)
+    except ffmpeg.Error:
+        print(C_CAP_ERR, end='', flush=True)
+    else:
+        print(C_CAP_OK, end='', flush=True)
+
+
 def wrire_result(res: str):
     with open('./local/rtsp.txt', 'a') as f:
         f.write(f'[{tim()}] {res}\n')
     if capture_image:
-        import ffmpeg
-        scr = res.split('://')[1].replace('/', '_').replace(':', '_')
-
-        stream = ffmpeg.input(res, ss=0)
-        file = stream.output(f"local/{scr}.png", vframes=1)
-        try:
-            ff = file.run(capture_stdout=True, capture_stderr=True)
-        except ffmpeg.Error as e:
-            print(C_CAP_ERR, end='', flush=True)
-        else:
-            print(C_CAP_OK, end='', flush=True)
+        capture(res)
 
 
 def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
