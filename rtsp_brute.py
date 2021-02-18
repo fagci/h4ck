@@ -18,6 +18,7 @@ verbose = 0
 host_threads = 1024
 path_threads = 2
 brute_threads = 1
+rtsp_port = 554
 
 
 # cam
@@ -143,7 +144,7 @@ def check_path(host, port, path):
 
 
 def check_host(host):
-    ch = partial(check_path, host, 554)
+    ch = partial(check_path, host, rtsp_port)
 
     with TPE(path_threads) as ex:
         with open('./data/rtsp_paths.txt') as f:
@@ -163,18 +164,20 @@ def check_host(host):
                 return rr  # first valid path is enough now
 
 
-def main(v=False, vv=False, vvv=False, ht=None, pt=None, bt=None):
+def main(port=554, v=False, vv=False, vvv=False, ht=None, pt=None, bt=None):
+    global rtsp_port
     global verbose
     global host_threads
     global path_threads
     global brute_threads
+    rtsp_port = port
     host_threads = ht or host_threads
     path_threads = pt or path_threads
     brute_threads = bt or brute_threads
 
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 
-    with open('./local/hosts_554.txt') as f:
+    with open(f'./local/hosts_{rtsp_port}.txt') as f:
         hosts = [ln.rstrip() for ln in f]
 
     with TPE(host_threads) as ex:
