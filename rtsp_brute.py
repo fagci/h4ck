@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 from concurrent.futures import ThreadPoolExecutor as TPE
 from functools import partial
-from inspect import classify_class_attrs
 import re
 import socket as so
-from sys import path
 from time import sleep
 
 from fire import Fire
@@ -14,11 +12,12 @@ from lib.utils import tim
 
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
-verbose = 0
-host_threads = 1024
+hosts_file = None
+rtsp_port = 554
+host_threads = 64
 path_threads = 2
 brute_threads = 1
-rtsp_port = 554
+verbose = 0
 
 
 # cam
@@ -144,7 +143,10 @@ def check_path(host, port, path):
 
 
 def check_host(host):
-    ch = partial(check_path, host, rtsp_port)
+    port = rtsp_port
+    if ':' in host:
+        host, port = host.split(':')
+    ch = partial(check_path, host, int(port))
 
     with TPE(path_threads) as ex:
         with open('./data/rtsp_paths.txt') as f:
@@ -164,20 +166,32 @@ def check_host(host):
                 return rr  # first valid path is enough now
 
 
-def main(port=554, v=False, vv=False, vvv=False, ht=None, pt=None, bt=None):
+def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, v=False, vv=False, vvv=False):
+    """Brute creds, fuzzing paths for RTSP cams
+
+    :param str hosts_file: File with lines ip:port or just ips
+    :param int port: Default port to use if not specified in file
+    :param int ht: Threads count for hosts
+    :param int pt: Threads count for paths
+    :param int bt: Threads count for brute
+    """
     global rtsp_port
     global verbose
     global host_threads
     global path_threads
     global brute_threads
+
     rtsp_port = port
-    host_threads = ht or host_threads
-    path_threads = pt or path_threads
-    brute_threads = bt or brute_threads
+    host_threads = ht
+    path_threads = pt
+    brute_threads = bt
 
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 
-    with open(f'./local/hosts_{rtsp_port}.txt') as f:
+    if not hosts_file:
+        hosts_file = f'./local/hosts_{rtsp_port}.txt'
+
+    with open(hosts_file) as f:
         hosts = [ln.rstrip() for ln in f]
 
     with TPE(host_threads) as ex:
