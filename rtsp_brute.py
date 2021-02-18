@@ -4,6 +4,7 @@ from functools import partial
 from inspect import classify_class_attrs
 import re
 import socket as so
+from sys import path
 from time import sleep
 
 from fire import Fire
@@ -14,6 +15,10 @@ from lib.utils import tim
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
 verbose = 0
+host_threads = 1024
+path_threads = 2
+brute_threads = 1
+
 
 # cam
 C_FOUND = '@'
@@ -129,7 +134,7 @@ def check_path(host, port, path):
 
     ch = partial(check_cred, host, port, path)
 
-    with TPE(1) as ex:
+    with TPE(brute_threads) as ex:
         for res in ex.map(ch, creds):
             if res is None:
                 return
@@ -140,7 +145,7 @@ def check_path(host, port, path):
 def check_host(host):
     ch = partial(check_path, host, 554)
 
-    with TPE(2) as ex:
+    with TPE(path_threads) as ex:
         with open('./data/rtsp_paths.txt') as f:
             paths = [ln.rstrip() for ln in f]
 
@@ -158,14 +163,21 @@ def check_host(host):
                 return rr  # first valid path is enough now
 
 
-def main(v=False, vv=False, vvv=False):
+def main(v=False, vv=False, vvv=False, ht=None, pt=None, bt=None):
     global verbose
+    global host_threads
+    global path_threads
+    global brute_threads
+    host_threads = ht or host_threads
+    path_threads = pt or path_threads
+    brute_threads = bt or brute_threads
+
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 
     with open('./local/hosts_554.txt') as f:
         hosts = [ln.rstrip() for ln in f]
 
-    with TPE(1024) as ex:
+    with TPE(host_threads) as ex:
         results = ex.map(check_host, hosts)
         for i, res in enumerate(list(results)):
             if res:
