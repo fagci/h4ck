@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Port scanner with multiple hosts and ports support"""
 import ipaddress
 import os
 from random import shuffle
