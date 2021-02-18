@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Brute creds, fuzzing paths for RTSP cams.
+See --help for options"""
 from concurrent.futures import ThreadPoolExecutor as TPE
 from functools import partial
 import re
