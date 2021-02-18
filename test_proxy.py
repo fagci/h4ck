@@ -3,8 +3,7 @@ import socks as so
 import proxyscrape
 # Create a collector for http resources
 collector = proxyscrape.create_collector('my-collector', 'socks4')
-proxy: proxyscrape.Proxy = collector.get_proxy(
-    {'country': 'united states'})  # Retrieve a united states proxy
+proxy: proxyscrape.Proxy = collector.get_proxy({'anonymous': True})
 
 
 with so.socksocket() as s:
