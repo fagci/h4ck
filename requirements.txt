@@ -1,4 +1,5 @@
 colorama
+ffmpeg-python
 fire
 requests
 tqdm

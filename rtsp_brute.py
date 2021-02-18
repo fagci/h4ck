@@ -18,6 +18,7 @@ host_threads = 64
 path_threads = 2
 brute_threads = 1
 verbose = 0
+capture_image = False
 
 
 # cam
@@ -36,10 +37,25 @@ C_FUC_UP = 'f'
 C_NOT_RTSP = '?'
 C_TMOF = '%'
 
+C_CAP_OK = 'C'
+C_CAP_ERR = '!'
 
-def wrire_result(res):
+
+def wrire_result(res: str):
     with open('./local/rtsp.txt', 'a') as f:
         f.write(f'[{tim()}] {res}\n')
+    if capture_image:
+        import ffmpeg
+        scr = res.split('://')[1].replace('/', '_').replace(':', '_')
+
+        stream = ffmpeg.input(res, ss=0)
+        file = stream.output(f"local/{scr}.png", vframes=1)
+        try:
+            ff = file.run(capture_stdout=True, capture_stderr=True)
+        except ffmpeg.Error as e:
+            print(C_CAP_ERR, end='', flush=True)
+        else:
+            print(C_CAP_OK, end='', flush=True)
 
 
 def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
@@ -166,7 +182,7 @@ def check_host(host):
                 return rr  # first valid path is enough now
 
 
-def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, v=False, vv=False, vvv=False):
+def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, capture=False, v=False, vv=False, vvv=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -180,11 +196,13 @@ def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, v=False, vv=False, vvv=Fa
     global host_threads
     global path_threads
     global brute_threads
+    global capture_image
 
     rtsp_port = port
     host_threads = ht
     path_threads = pt
     brute_threads = bt
+    capture_image = capture
 
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 
