@@ -53,7 +53,7 @@ def ips_from_file(file, randomize=False):
                 yield d
 
 
-def check_ip(ips, gl, pl, ports):
+def check_ip(ips, gl, pl, ports, iface):
     while True:
         with gl:
             try:
@@ -61,14 +61,21 @@ def check_ip(ips, gl, pl, ports):
             except StopIteration:
                 break
         for port in ports:
-            res = check_port(ip, int(port))
+            res = check_port(ip, int(port), iface=iface)
             if res:
                 with pl:
                     print(f'{ip}:{port} ({int(res[1]*1000):>4} ms)')
                     write_result(ip, port)
 
 
-def main(hosts, ports, workers=16, r=False):
+def main(hosts, ports, workers=16, r=False, i=None):
+    """Scan ip, port range, ex.: ./netbat.py 192.168.0.1/24 8000-9000
+
+    :param str hosts: CIDR or path to file w/hosts
+    :param str ports: port, list or range (only one option for now)
+    :param int workers: number of worker threads
+    :param bool r: randomize ips
+    :param str i: interface for scan"""
     if isinstance(ports, int) or isinstance(ports, str):
         ports = str(ports)
         if '-' in ports:
@@ -92,7 +99,7 @@ def main(hosts, ports, workers=16, r=False):
     else:
         ips = iter(hosts)
 
-    process(check_ip, ips, workers, ports)
+    process(check_ip, ips, workers, ports, i)
 
 
 if __name__ == "__main__":
