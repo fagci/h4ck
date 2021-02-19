@@ -88,9 +88,9 @@ def main(hosts, ports, workers=16, r=False):
         print('Use /24 format please')
         exit()
     elif isinstance(hosts, str):
-        ips = [hosts]
+        ips = iter([hosts])
     else:
-        ips = hosts
+        ips = iter(hosts)
 
     process(check_ip, ips, workers, ports)
 
