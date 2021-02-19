@@ -74,8 +74,6 @@ def capture(res):
         try:
             file.run(capture_stdout=True, capture_stderr=True)
         except ffmpeg.Error as e:
-            print(e.stdout.decode())
-            print(e.stderr.decode())
             return False
         else:
             return True
@@ -146,7 +144,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 print(C_NOT_RTSP, end='', flush=True)
             break
         except Exception as e:
-            print('Unknown error:', e, 'please, contact with dev')
+            # print('Unknown error:', e, 'please, contact with dev')
             return 418
     return 503
 
