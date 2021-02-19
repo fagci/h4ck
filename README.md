@@ -1,6 +1,6 @@
 # h4ck
 
-"Hacking" tools written by me.
+&laquo;Hacking&raquo; tools written by me.
 
 `fortune*` -- random IPs scanner/generator  
 `netbat` -- hosts + ports scaner, supports hostlist (+CIDR)  
