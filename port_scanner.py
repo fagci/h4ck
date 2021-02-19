@@ -11,6 +11,7 @@ queue = Queue()
 socket.setdefaulttimeout(0.25)
 target_ip = socket.gethostbyname('127.0.0.1')
 
+
 def port_check(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -29,7 +30,7 @@ def scan_thread():
 
 def main():
     for _ in range(threads_count):
-        Thread(target=scan_thread,daemon=True).start()
+        Thread(target=scan_thread, daemon=True).start()
 
     for port in range(port_from, port_to):
         queue.put(port)

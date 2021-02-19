@@ -10,7 +10,7 @@ from time import sleep
 
 from fire import Fire
 
-from lib.utils import tim
+from lib.utils import dt
 
 
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
@@ -23,6 +23,7 @@ brute_threads = 1
 timeout = 5
 verbose = 0
 capture_image = False
+interface = None
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_DIR = os.path.join(DIR, 'local')
@@ -81,13 +82,13 @@ def capture(res):
 
 def wrire_result(res: str):
     with open(os.path.join(LOCAL_DIR, 'rtsp.txt'), 'a') as f:
-        f.write(f'[{tim()}] {res}\n')
+        f.write(f'[{dt()}] {res}\n')
     if capture_image:
         captured = capture(res)
         print(C_CAP_OK if captured else C_CAP_ERR, end='', flush=True)
 
 
-def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
+def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3, iface=None):
     if cred:
         cred += '@'
     req = (
@@ -100,6 +101,9 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
         try:
             with so.socket() as s:
                 s.settimeout(timeout)
+                if iface:
+                    s.setsockopt(
+                        so.SOL_SOCKET, so.SO_BINDTODEVICE, iface.encode())
                 s.connect((host, port))
                 s.sendall(req.encode())
                 response = s.recv(1024).decode()
@@ -119,7 +123,6 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
             # 104 reset by peer
             if e.errno == 104:
                 if tries <= 0:
-                    # print('u', end='', flush=True)
                     if verbose:
                         print(C_FUC_UP, end='', flush=True)
                     break  # host f*ckup?
@@ -150,7 +153,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
 
 
 def check_cred(host, port, path, cred):
-    code = rtsp_req(host, port, path, cred, timeout)
+    code = rtsp_req(host, port, path, cred, timeout, interface)
     if code == 200:
         print(C_OK, end='', flush=True)
         return f'rtsp://{cred}@{host}:{port}{path}'
@@ -163,7 +166,7 @@ def check_cred(host, port, path, cred):
 
 
 def check_path(host, port, path):
-    code = rtsp_req(host, port, path, timeout=timeout)
+    code = rtsp_req(host, port, path, timeout=timeout, iface=interface)
 
     if code >= 500:
         print(C_FAIL, end='', flush=True)
@@ -211,7 +214,7 @@ def check_host(host):
                 return rr  # first valid path is enough now
 
 
-def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, capture=False, v=False, vv=False, vvv=False):
+def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=False, v=False, vv=False, vvv=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -219,6 +222,7 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, capture=False, v=Fal
     :param int ht: Threads count for hosts
     :param int pt: Threads count for paths
     :param int bt: Threads count for brute
+    :param str i: Network interface to use
     """
     global rtsp_port
     global verbose
@@ -227,6 +231,7 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, capture=False, v=Fal
     global brute_threads
     global capture_image
     global timeout
+    global interface
 
     rtsp_port = port
     host_threads = ht
@@ -234,6 +239,7 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, capture=False, v=Fal
     brute_threads = bt
     capture_image = capture
     timeout = t
+    interface = i
 
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 

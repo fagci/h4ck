@@ -11,4 +11,4 @@
 
 WIP =)
 
-![fagci's webmap results](webmap.png)
+![fagci's webmap results](.img/webmap.png)
