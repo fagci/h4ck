@@ -59,7 +59,7 @@ def generate_ips(count: int, bypass_local=True):
             yield randip()
 
 
-def check_port(ip, port, timeout=1, double_check=False, iface=None):
+def check_port(ip, port, timeout=1, double_check=False, iface: str = None):
     target = (ip, port)
     while True:
         try:
@@ -68,7 +68,8 @@ def check_port(ip, port, timeout=1, double_check=False, iface=None):
                 s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
                 s.setsockopt(so.IPPROTO_TCP, so.TCP_NODELAY, 1)
                 if iface:
-                    s.setsockopt(so.SOL_SOCKET, so.SO_BINDTODEVICE, iface)
+                    s.setsockopt(
+                        so.SOL_SOCKET, so.SO_BINDTODEVICE, iface.encode())
                 s.settimeout(timeout)
                 t = time()
                 res = s.connect_ex(target) == 0
