@@ -10,7 +10,7 @@ from time import sleep
 
 from fire import Fire
 
-from lib.utils import dt
+from lib.utils import dt, str_to_filename
 
 
 status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
@@ -51,8 +51,7 @@ C_CAP_ERR = '!'
 
 
 def capture(res):
-    from re import sub
-    img_name = sub(r'[^A-Za-z0-9]+', '_', res.split('://')[1])
+    img_name = str_to_filename(res.split('://')[1])
     img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
 
     try:

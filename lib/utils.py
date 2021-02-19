@@ -21,6 +21,11 @@ def dt():
     return datetime.now().strftime('%d.%m %H:%M:%S')
 
 
+def str_to_filename(text):
+    from re import sub
+    return sub(r'[^A-Za-z0-9]+', '_', text)
+
+
 def parse_range_list(rgstr):
     """Parse ranges such as 2-5,7,12,8-11 to [2,3,4,5,7,8,9,10,11,12]"""
     import re

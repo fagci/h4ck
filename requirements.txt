@@ -1,5 +1,7 @@
 colorama
 ffmpeg-python
 fire
+pyinquirer
+pyyaml
 requests
 tqdm
