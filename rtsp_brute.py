@@ -225,10 +225,12 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=Fals
 
     :param str hosts_file: File with lines ip:port or just ips
     :param int port: Default port to use if not specified in file
+    :param float t: Timeout for queries
     :param int ht: Threads count for hosts
     :param int pt: Threads count for paths
     :param int bt: Threads count for brute
     :param str i: Network interface to use
+    :param bool capture: Capture images
     :param int v: Verbose level
     :param bool s: Silent mode
     """
