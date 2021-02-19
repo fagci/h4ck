@@ -6,6 +6,7 @@ from functools import partial
 import os
 import re
 import socket as so
+import sys
 from time import sleep
 
 from fire import Fire
@@ -50,6 +51,12 @@ C_CAP_OK = 'C'
 C_CAP_ERR = '!'
 
 
+def prg(t):
+    if verbose >= 0:
+        sys.stdout.write(t)
+        sys.stdout.flush()
+
+
 def capture(res):
     img_name = str_to_filename(res.split('://')[1])
     img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
@@ -84,7 +91,7 @@ def wrire_result(res: str):
         f.write(f'[{dt()}] {res}\n')
     if capture_image:
         captured = capture(res)
-        print(C_CAP_OK if captured else C_CAP_ERR, end='', flush=True)
+        prg(C_CAP_OK if captured else C_CAP_ERR)
 
 
 def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout: float = 3, iface=None):
@@ -109,13 +116,13 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
                 return int(status_re.findall(response)[0])
         except so.timeout:
             if verbose:
-                print(C_SLOW, end='', flush=True)
+                prg(C_SLOW)
             break  # slowpoke, 3ff0ff
         except IOError as e:
             # 111 refused
             if e.errno == 111:
                 if verbose:
-                    print(C_REFUSED, end='', flush=True)
+                    prg(C_REFUSED)
 
                 break
 
@@ -123,19 +130,19 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
             if e.errno == 104:
                 if tries <= 0:
                     if verbose:
-                        print(C_FUC_UP, end='', flush=True)
+                        prg(C_FUC_UP)
                     break  # host f*ckup?
                 sleep(2 / tries)
                 tries -= 1
                 if verbose > 1:
-                    print(C_RETRY, end='', flush=True)
+                    prg(C_RETRY)
                 continue
 
             # too many open files
             if e.errno == 24:
                 sleep(0.15)
                 if verbose > 1:
-                    print(C_TMOF, end='', flush=True)
+                    prg(C_TMOF)
                 continue
             break
 
@@ -143,7 +150,7 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
             raise
         except IndexError:
             if verbose:
-                print(C_NOT_RTSP, end='', flush=True)
+                prg(C_NOT_RTSP)
             break
         except Exception as e:
             # print('Unknown error:', e, 'please, contact with dev')
@@ -154,11 +161,11 @@ def rtsp_req(host: str, port: int = 554, path: str = '', cred: str = '', timeout
 def check_cred(host, port, path, cred):
     code = rtsp_req(host, port, path, cred, timeout, interface)
     if code == 200:
-        print(C_OK, end='', flush=True)
+        prg(C_OK)
         return f'rtsp://{cred}@{host}:{port}{path}'
 
     if code >= 500:
-        print(C_FAIL, end='', flush=True)
+        prg(C_FAIL)
         return
 
     return ''
@@ -168,7 +175,7 @@ def check_path(host, port, path):
     code = rtsp_req(host, port, path, timeout=timeout, iface=interface)
 
     if code >= 500:
-        print(C_FAIL, end='', flush=True)
+        prg(C_FAIL)
         return
 
     if code not in [200, 401, 403]:
@@ -204,16 +211,16 @@ def check_host(host):
                 return
 
             if '0h84d' in rr:
-                print(C_FAKE, end='', flush=True)  # fake cam
+                prg(C_FAKE)
                 return
 
             if rr:
-                print(C_FOUND, end='', flush=True)
+                prg(C_FOUND)
                 wrire_result(rr)
                 return rr  # first valid path is enough now
 
 
-def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=False, v=False, vv=False, vvv=False):
+def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=False, v=0, s=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -222,6 +229,8 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=Fals
     :param int pt: Threads count for paths
     :param int bt: Threads count for brute
     :param str i: Network interface to use
+    :param int v: Verbose level
+    :param bool s: Silent mode
     """
     global rtsp_port
     global verbose
@@ -240,7 +249,9 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=Fals
     timeout = t
     interface = i
 
-    verbose = 3 if vvv else 2 if vv else 1 if v else 0
+    verbose = v
+    if s:
+        verbose = -1
 
     if capture and not os.path.exists(CAPTURES_DIR):
         os.mkdir(CAPTURES_DIR)
@@ -253,10 +264,14 @@ def main(hosts_file=None, port=554, t=5, ht=64, pt=2, bt=1, i=None, capture=Fals
 
     with TPE(host_threads) as ex:
         results = ex.map(check_host, hosts)
-        for i, res in enumerate(list(results)):
-            if res:
-                print()
-                print(f'[+ {i}]', res)
+        if verbose >= 0:
+            for res in list(results):
+                if res:
+                    print(res)
+        else:
+            for res in results:
+                if res:
+                    print(res)
 
 
 if __name__ == "__main__":
