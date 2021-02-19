@@ -7,6 +7,7 @@ from random import shuffle
 from fire import Fire
 
 from lib.scan import check_port, process
+from lib.utils import parse_range_list
 
 
 def write_result(ip, port):
@@ -72,17 +73,12 @@ def main(hosts, ports, workers=16, r=False, i=None):
     """Scan ip, port range, ex.: ./netbat.py 192.168.0.1/24 8000-9000
 
     :param str hosts: CIDR or path to file w/hosts
-    :param str ports: port, list or range (only one option for now)
+    :param str ports: port, list or range ex.: 22-25, 80, 443, 8000-9000
     :param int workers: number of worker threads
     :param bool r: randomize ips
     :param str i: interface for scan"""
     if isinstance(ports, int) or isinstance(ports, str):
-        ports = str(ports)
-        if '-' in ports:
-            fp, tp = ports.split('-')
-            ports = range(int(fp), int(tp))
-        else:
-            ports = ports.split(',')
+        ports = parse_range_list(str(ports))
 
     ips = []
 
