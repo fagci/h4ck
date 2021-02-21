@@ -53,6 +53,8 @@ def check_path(allow_html: bool, url: str):
                 return True, url, r.headers.get('Content-Length')
     except requests.ConnectionError as e:
         print(f'{CRED}[!!]', e, CEND)
+    except:
+        pass
     return False, url, 0
 
 
