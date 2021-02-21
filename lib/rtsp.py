@@ -57,27 +57,37 @@ def rtsp_req(url: str, timeout: float = 3, iface=None, retries=4):
             return 500
 
 
-def capture_image(stream_url, img_path):
-    try:
-        from cv2 import VideoCapture, imwrite
-        vcap = VideoCapture(stream_url)
-        if vcap.isOpened():
-            ret, frame = vcap.read()
-            vcap.release()
-            if ret:
-                imwrite(img_path, frame)
-                return True
-        return False
-
-    except ImportError:
-        import ffmpeg
-
-        stream = ffmpeg.input(stream_url, rtsp_transport='tcp')
-        file = stream.output(img_path, vframes=1)
-
-        try:
-            file.run(capture_stdout=True, capture_stderr=True)
-        except ffmpeg.Error:
-            return False
-        else:
+def capture_image_cv2(stream_url, img_path):
+    from cv2 import VideoCapture, imwrite
+    vcap = VideoCapture(stream_url)
+    if vcap.isOpened():
+        ret, frame = vcap.read()
+        vcap.release()
+        if ret:
+            imwrite(img_path, frame)
             return True
+    return False
+
+
+def capture_image_ffmpeg(stream_url, img_path):
+    import ffmpeg
+
+    stream = ffmpeg.input(stream_url, rtsp_transport='tcp')
+    file = stream.output(img_path, vframes=1)
+
+    try:
+        file.run(capture_stdout=True, capture_stderr=True)
+    except ffmpeg.Error:
+        return False
+    else:
+        return True
+
+
+def capture_image(stream_url, img_path, prefer_ffmpeg=False):
+    if prefer_ffmpeg:
+        return capture_image_ffmpeg(stream_url, img_path)
+
+    try:
+        return capture_image_cv2(stream_url, img_path)
+    except ImportError:
+        return capture_image_ffmpeg(stream_url, img_path)

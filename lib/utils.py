@@ -11,6 +11,21 @@ def interruptable(fn):
     return wrap
 
 
+def tmof_retry(fn):
+    def wrap(*args, **kwargs):
+        while True:
+            try:
+                return fn(*args, **kwargs)
+            except OSError as e:
+                if e.errno == 24:
+                    from time import sleep
+                    sleep(0.15)
+                    continue
+                raise
+    wrap.__doc__ = fn.__doc__
+    return wrap
+
+
 def tim():
     from datetime import datetime
     return datetime.now().strftime('%H:%M:%S')

@@ -123,6 +123,18 @@ def get_banner(ip, port, timeout=3, send=None):
             break
 
 
+def process_each(fn, it, workers=16, *args):
+    def fn2(gen, gl, pl, *args):
+        while True:
+            try:
+                with gl:
+                    item = next(gen)
+            except StopIteration:
+                break
+            fn(item, pl, *args)
+    process(fn2, iter(it), workers, *args)
+
+
 def process(fn, it, workers=16, *args):
     from threading import Lock, Thread
     from time import sleep
@@ -140,4 +152,4 @@ def process(fn, it, workers=16, *args):
         t.start()
 
     while any(map(lambda t: t.is_alive(), threads)):
-        sleep(0.25)
+        sleep(0.5)
