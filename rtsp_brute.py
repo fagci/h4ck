@@ -60,6 +60,9 @@ def wrire_result(stream_url: str):
 
 def check_host(host):
     port = rtsp_port
+    if '/' in host:
+        print('Can\'t use', host, 'as target')
+        return []
     if ':' in host:
         host, port = host.split(':')
     netloc = f'{host}:{port}'
