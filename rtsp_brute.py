@@ -55,8 +55,6 @@ def wrire_result(stream_url: str):
         img_name = f'{up.hostname}_{up.port}_{up.username}_{up.password}_{p}'
         img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
         captured = capture_image(stream_url, img_path)
-        if not captured:
-            print(stream_url)
         prg(C_CAP_OK if captured else C_CAP_ERR)
 
 
