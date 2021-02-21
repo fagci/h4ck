@@ -23,7 +23,7 @@ def rtsp_req(url: str, timeout: float = 3, iface=None, retries=4):
                         so.SOL_SOCKET, so.SO_BINDTODEVICE, iface.encode())
                 s.connect((up.hostname, up.port))
                 s.sendall(req.encode())
-                response = s.recv(1024).decode()
+                response = s.recv(256).decode()
                 return int(status_re.findall(response)[0])
         except so.timeout:
             return 503  # slowpoke, 3ff0ff

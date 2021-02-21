@@ -1,4 +1,5 @@
 def interruptable(fn):
+    """Decorator to handle exit with Ctrl+C"""
     import sys
 
     def wrap(*args, **kwargs):
@@ -12,6 +13,7 @@ def interruptable(fn):
 
 
 def tmof_retry(fn):
+    """Decorator to deal with OSError 24: too many open files"""
     def wrap(*args, **kwargs):
         while True:
             try:
