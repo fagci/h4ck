@@ -61,3 +61,11 @@ def parse_range_list(rgstr):
                 raise ValueError("Non-integer range: {}".format(rg))
     rg = map(parse_range, re.split(r'\s*[,;]\s*', rgstr))
     return list(set(chain.from_iterable(rg)))
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f %s%s" % (num, 'Yi', suffix)

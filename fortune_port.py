@@ -8,7 +8,7 @@ from lib.scan import check_port, generate_ips, get_banner, process
 __author__ = 'Mikhail Yudin aka fagci'
 
 
-def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double_check=False):
+def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double_check=False, interface=None):
     while True:
         with gen_lock:
             try:
@@ -17,7 +17,7 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double
                 break
 
         port_open_res = check_port(
-            ip, port, timeout, double_check=double_check)
+            ip, port, timeout, double_check=double_check, iface=interface)
         if port_open_res:
             b = ''
             if banner:
@@ -39,7 +39,7 @@ def check_ip(ips, gen_lock, print_lock, port, timeout, banner, file_path, double
                         continue
 
 
-def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=1.5, banner=None, fresh=False, double_check=False):
+def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=1.5, banner=None, fresh=False, double_check=False, i=None):
     file_path = f'./local/hosts_{port}.txt'
     if fresh and input(f'Delete hosts_{port}.txt? y/n: ').lower() == 'y':
         import os
@@ -52,7 +52,7 @@ def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=1.
                 print('Removed.')
     ips = generate_ips(count)
     process(check_ip, ips, workers, port, timeout,
-            banner, file_path, double_check)
+            banner, file_path, double_check, i)
 
 
 if __name__ == "__main__":
