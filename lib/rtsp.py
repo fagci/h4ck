@@ -53,8 +53,8 @@ def rtsp_req(url: str, timeout: float = 3, iface=None, retries=4):
         except IndexError:
             return 500  # not rtsp
         except Exception as e:
-            print('Unknown error:', e, 'please, contact with dev')
-            return 418
+            # print('Unknown error:', e, 'please, contact with dev')
+            return 500
 
 
 def capture_image(stream_url, img_path):

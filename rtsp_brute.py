@@ -9,6 +9,7 @@ from fire import Fire
 
 from lib.utils import dt, str_to_filename
 from lib.rtsp import rtsp_req, capture_image
+from lib.scan import process
 
 
 rtsp_port = 554
@@ -58,54 +59,61 @@ def wrire_result(stream_url: str):
         prg(C_CAP_OK if captured else C_CAP_ERR)
 
 
-def check_host(host):
-    port = rtsp_port
-    if '/' in host:
-        print('Can\'t use', host, 'as target')
-        return []
-    if ':' in host:
-        host, port = host.split(':')
-    netloc = f'{host}:{port}'
-    results = []
-
-    for path in paths:
-        root_url = f'rtsp://{netloc}{path}'
-
-        code = rtsp_req(root_url, timeout=timeout, iface=interface)
-
-        if code >= 500:
-            prg(C_FAIL)
+def check_host(hosts, gl, pl):
+    while True:
+        try:
+            with gl:
+                host = next(hosts)
+        except StopIteration:
+            break
+        port = rtsp_port
+        if '/' in host:
+            print('Can\'t use', host, 'as target')
             return []
+        if ':' in host:
+            host, port = host.split(':')
+        netloc = f'{host}:{port}'
+        results = []
 
-        if code not in [200, 401, 403]:
-            prg('.', 3)
-            continue
+        for path in paths:
+            root_url = f'rtsp://{netloc}{path}'
 
-        if '/0h84d' == path:
-            prg(C_FAKE)
-            return []
-
-        for cred in creds:
-            c_url = f'rtsp://{cred}@{netloc}{path}'
-            code = rtsp_req(c_url, timeout, interface)
-
-            if code == 200:
-                results.append(c_url)
-                prg(C_FOUND)
-                wrire_result(c_url)
-                if verbose < 0:
-                    print(c_url)
-                if single_cred_enough:
-                    break
+            code = rtsp_req(root_url, timeout=timeout, iface=interface)
 
             if code >= 500:
                 prg(C_FAIL)
                 return []
 
-        if single_path_enough and results:
-            return results
+            if code not in [200, 401, 403]:
+                prg('.', 3)
+                continue
 
-    return results
+            if '/0h84d' == path:
+                prg(C_FAKE)
+                return []
+
+            for cred in creds:
+                c_url = f'rtsp://{cred}@{netloc}{path}'
+                code = rtsp_req(c_url, timeout, interface)
+
+                if code == 200:
+                    results.append(c_url)
+                    prg(C_FOUND)
+                    with pl:
+                        wrire_result(c_url)
+                        if verbose < 0:
+                            print(c_url)
+                    if single_cred_enough:
+                        break
+
+                if code >= 500:
+                    prg(C_FAIL)
+                    return []
+
+            if single_path_enough and results:
+                return results
+
+        return results
 
 
 def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=False):
@@ -148,24 +156,15 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
     if capture and not os.path.exists(CAPTURES_DIR):
         os.mkdir(CAPTURES_DIR)
 
-    with open(hosts_file or os.path.join(LOCAL_DIR, f'hosts_{rtsp_port}.txt')) as f:
-        hosts = [ln.rstrip() for ln in f]
-
     with open(P or os.path.join(DATA_DIR, 'rtsp_paths.txt')) as f:
         paths = ['/0h84d'] + [ln.rstrip() for ln in f]
 
     with open(C or os.path.join(DATA_DIR, 'rtsp_creds.txt')) as f:
         creds = [ln.rstrip() for ln in f]
 
-    with TPE(ht) as ex:
-        results = ex.map(check_host, hosts)
-
-        if verbose >= 0:
-            results = list(results)
-
-        for res in results:
-            for r in res:
-                print(r)
+    with open(hosts_file or os.path.join(LOCAL_DIR, f'hosts_{rtsp_port}.txt')) as f:
+        hosts = (ln.rstrip() for ln in f)
+        process(check_host, hosts, workers=ht)
 
 
 if __name__ == "__main__":
