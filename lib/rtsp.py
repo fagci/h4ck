@@ -26,16 +26,16 @@ def rtsp_req(url: str, timeout: float = 3, iface=None, retries=4):
                 response = s.recv(256).decode()
                 return int(status_re.findall(response)[0])
         except so.timeout:
-            return 503  # slowpoke, 3ff0ff
+            return 408  # slowpoke, 3ff0ff
         except IOError as e:
             # 111 refused
             if e.errno == 111:
-                return 500
+                return 444
 
             # 104 reset by peer
             if e.errno == 104:
                 if retries <= 0:
-                    return 500  # host f*ckup?
+                    return 503  # host f*ckup?
                 sleep(2 / retries)
                 retries -= 1
                 continue
@@ -46,14 +46,17 @@ def rtsp_req(url: str, timeout: float = 3, iface=None, retries=4):
                 continue
 
             # other errors
+            print(f'IO err {e} for {url}')
             return 500
 
         except KeyboardInterrupt:
             raise
         except IndexError:
-            return 500  # not rtsp
+            # print(f'Bad response: {response}')
+            return 500  # not rtsp or not by RFC
         except Exception as e:
-            # print('Unknown error:', e, 'please, contact with dev')
+            print('Unknown error:', e,
+                  f'Url: {url}. Please, contact with dev')
             return 500
 
 

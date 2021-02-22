@@ -11,6 +11,7 @@ from lib.scan import process_each
 from lib.utils import dt, geoip_str_online, str_to_filename, tmof_retry, interruptable
 
 verbose_level = 0
+debug = False
 
 FAKE_CAM_DETECT = '/0h84d'
 
@@ -84,21 +85,44 @@ def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough,
 
         if code >= CODE_FAIL:
             prg(C_CAM_FAIL)
+            if debug:
+                print(f'[ERR ] {code} {p_url}')
             return
+
+        if code == 408:  # timeout
+            prg('t')
+            if debug:
+                print(f'[TIME] {p_url}')
+            return  # next host
 
         # path has no critical error
         # but is not ok & not have auth restrictions
         if code not in CODES_INTERESTING:
             prg('.', 1)
+            if debug and code != 404:
+                print(f'[NINT] {code} {p_url}')
             continue
 
         # path exists, but no cams can have that path in real world
         if path == FAKE_CAM_DETECT:
             prg(C_CAM_FAKE)
-            return
+            if debug:
+                print(f'[FAKE] {code} {p_url}')
+            # return
 
-        if code > 400:
+        if code >= 400:
             prg(str(code)[2])
+
+        if code == CODE_SUCCESS:
+            if debug:
+                print(f'[HOLE] {p_url}')
+            with pl:
+                wrire_result(p_url)
+                if verbose_level < 0:
+                    print(p_url)
+                if capture_img:
+                    capture(p_url, prefer_ffmpeg, capture_callback)
+            continue
 
         # path exists (in CODES_INTERESTING) & not fake
         # will try to check creds
@@ -108,9 +132,13 @@ def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough,
 
             if code >= CODE_FAIL:
                 prg(C_CAM_FAIL)
+                if debug:
+                    print(f'[ERR ] {code} {c_url}')
                 return []
 
             if code != CODE_SUCCESS:
+                if debug:
+                    print(f'[FAIL] {code} {c_url}')
                 continue
 
             prg(C_CAM_FOUND)
@@ -127,9 +155,13 @@ def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough,
 
         if single_path_enough:
             return
+        # if not authorized by any cred:
+        # 1. cam has no more accounts
+        #    from our dict (need return)
+        # 2. path has no more accounts
 
 
-def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False, capture_callback=None):
+def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False, capture_callback=None, d=False):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -147,8 +179,10 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
     :param bool ff: prefer ffmpeg over opencv
     """
     global verbose_level
+    global debug
 
     verbose_level = v
+    debug = d
 
     if s:
         verbose_level = -1
@@ -156,7 +190,7 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
     if capture and not os.path.exists(CAPTURES_DIR):
         os.mkdir(CAPTURES_DIR)
 
-    with open(P or os.path.join(DATA_DIR, 'rtsp_paths.txt')) as f:
+    with open(P or os.path.join(DATA_DIR, 'rtsp_paths_my.txt')) as f:
         paths = [FAKE_CAM_DETECT] + [ln.rstrip() for ln in f]
 
     with open(C or os.path.join(DATA_DIR, 'rtsp_creds.txt')) as f:
