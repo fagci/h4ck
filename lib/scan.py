@@ -124,15 +124,22 @@ def get_banner(ip, port, timeout=3, send=None):
 
 
 def process_each(fn, it, workers=16, *args):
-    def fn2(gen, gl, pl, *args):
-        while True:
+    running = True
+
+    def fn2(gen, gl, pl, running, *args):
+        while running:
             try:
                 with gl:
                     item = next(gen)
             except StopIteration:
                 break
-            fn(item, pl, *args)
-    process(fn2, iter(it), workers, *args)
+            try:
+                fn(item, pl, *args)
+            except:
+                running = False
+                break
+
+    process(fn2, iter(it), workers, running, *args)
 
 
 def process(fn, it, workers=16, *args):
