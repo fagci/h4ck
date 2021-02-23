@@ -47,6 +47,11 @@ def query(connection, url):
         print(repr(e))
         pass
 
+    try:
+        connection.close()
+    except:
+        pass
+
     return 500
 
 
