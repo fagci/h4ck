@@ -10,6 +10,6 @@ while true; do
     echo Brute
     ./rtsp_brute2.py \
         -ht 1024 -i tun0 -ff \
-        --cc local/campost.sh
+        -c -sp --cc local/campost.sh
 done
 

