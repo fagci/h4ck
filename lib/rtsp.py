@@ -75,7 +75,7 @@ def capture_image_cv2(stream_url, img_path):
 def capture_image_ffmpeg(stream_url, img_path):
     import ffmpeg
 
-    stream = ffmpeg.input(stream_url, rtsp_transport='tcp')
+    stream = ffmpeg.input(stream_url, rtsp_transport='tcp', ss=0)
     file = stream.output(img_path, vframes=1)
 
     try:
