@@ -4,13 +4,10 @@ import os
 from pathlib import Path
 import re
 from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, timeout
-from subprocess import Popen
 from time import sleep
 
 from fire import Fire
 from tqdm import tqdm
-
-from lib.utils import geoip_str_online
 
 
 fake_path = '/f4k3p4th'
@@ -79,12 +76,8 @@ def connect(host, port, interface) -> SocketIO:
             retries -= 1
 
 
-def process_callback(callback, host, url):
-    Popen([callback, url, geoip_str_online(host)])
-
-
 def process_target(target_params):
-    host, port, single_path, interface, callback = target_params
+    host, port, single_path, interface = target_params
     connection = connect(host, port, interface)
 
     results = []
@@ -108,8 +101,6 @@ def process_target(target_params):
 
         if code == 200:
             results.append(p_url)
-            if callback:
-                process_callback(callback, host, p_url)
             if single_path:
                 connection.close()
                 return results
@@ -126,8 +117,6 @@ def process_target(target_params):
                 continue  # access denied
 
             results.append(c_url)
-            if callback:
-                process_callback(callback, host, c_url)
             if single_path:
                 connection.close()
                 return results
@@ -137,7 +126,7 @@ def process_target(target_params):
     return results
 
 
-def main(H='', w=None, sp=False, i='', cb=''):
+def main(H='', w=None, sp=False, i=''):
     hosts_file = H or local_dir / 'hosts_554.txt'
 
     with ThreadPoolExecutor(w) as ex:
@@ -151,7 +140,7 @@ def main(H='', w=None, sp=False, i='', cb=''):
                 if ':' in host:
                     host, port = host.split(':')
 
-                arg = (host, port, sp, i, cb)
+                arg = (host, port, sp, i)
 
                 future = ex.submit(process_target, arg)
                 futures[future] = arg
