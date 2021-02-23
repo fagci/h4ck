@@ -44,12 +44,12 @@ class Target:
             try:
                 self._socket = create_connection(ct, 3)
             except:
-                sleep(1.2/retries)
+                sleep(3/retries)
                 retries -= 1
                 continue
             else:
                 self.connected = True
-                self._socket.settimeout(3)
+                self._socket.settimeout(10)
                 if self._iface:
                     self._socket.setsockopt(
                         SOL_SOCKET, SO_BINDTODEVICE, self._iface.encode())
@@ -65,15 +65,13 @@ class Target:
         req = (
             f'DESCRIBE {url} RTSP/1.0\r\n'
             'CSeq: 2\r\n'
-            # 'Accept: application/sdp\r\n'
+            'Accept: application/sdp\r\n'
             '\r\n'
         )
 
         response = ''
         code = 500
         t = time()
-
-        # conn_code = self._socket.connect_ex((self.host, int(self.port)))
 
         if self.connected:
             try:
@@ -191,12 +189,17 @@ def capture(prefer_ffmpeg, capture_callback, stream_url):
     img_name = f'{up.hostname}_{up.port}_{up.username}_{up.password}_{p}'
     img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
 
+    print('[*] Capture', stream_url)
     captured = capture_image(stream_url, img_path, prefer_ffmpeg)
+    print('[+]' if captured else '[-]', stream_url)
 
     if captured and capture_callback:
         import subprocess
+        print('[*] Handle callback', stream_url)
         subprocess.Popen([capture_callback, stream_url,
                           img_path, geoip_str_online(up.hostname)])
+        print('[+] Handled callback', stream_url)
+    return captured
 
 
 def process_host(paths, creds, iface, single_path, host):
@@ -233,13 +236,14 @@ def main(H=None, P=None, C=None, ff=False, cc='', ht=None, i=None, c=False, sp=F
                     cams.append(url)
                     print(f'[C] {t:>4} ms {url}')
 
-    if c:
+    if c and cams:
         print('[*] Capture')
         capture_cam = partial(capture, ff, cc)
 
-        with ThreadPoolExecutor() as ex:
-            results = tqdm(ex.map(capture_cam, cams), total=len(cams))
-            captured_count = sum(1 for res in results if res)
+        captured_count = 0
+        for cam in cams:
+            if capture_cam(cam):
+                captured_count += 1
 
         print(f'[+] Captured {captured_count} cams')
 
