@@ -1,42 +1,37 @@
 #!/usr/bin/env python
-import socket
 from queue import Queue
+import socket
 from threading import Thread
-
-port_from = 0
-port_to = 10000
-threads_count = 20
-
-queue = Queue()
-socket.setdefaulttimeout(0.25)
-target_ip = socket.gethostbyname('127.0.0.1')
+from fire import Fire
 
 
-def port_check(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    if s.connect_ex((target_ip, port)) == 0:
-        print(f'{port} open')
-
-    s.close()
+def port_check(target):
+    with socket.socket() as s:
+        if s.connect_ex(target) == 0:
+            print('%s:%s' % target, 'open')
 
 
-def scan_thread():
+def scan(queue):
     while True:
-        port = queue.get()
-        port_check(port)
+        port_check(queue.get())
         queue.task_done()
 
 
-def main():
-    for _ in range(threads_count):
-        Thread(target=scan_thread, daemon=True).start()
+def main(ip: str = '127.0.0.1', pf: int = 1, pt: int = 1024, t: float = 1, w: int = 64):
+    queue = Queue()
+    socket.setdefaulttimeout(t)
 
-    for port in range(port_from, port_to):
-        queue.put(port)
+    args = (queue,)
+
+    for _ in range(w):
+        Thread(target=scan, args=args, daemon=True).start()
+
+    for port in range(pf, pt):
+        target = (ip, port)
+        queue.put(target)
 
     queue.join()
 
 
 if __name__ == "__main__":
-    main()
+    Fire(main)
