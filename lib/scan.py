@@ -65,8 +65,8 @@ def check_port(ip, port, timeout=1, double_check=False, iface: str = None):
         try:
             with so.socket() as s:
                 # send only RST on close
-                # s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
-                # s.setsockopt(so.IPPROTO_TCP, so.TCP_NODELAY, 1)
+                s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
+                s.setsockopt(so.IPPROTO_TCP, so.TCP_NODELAY, 1)
                 if iface:
                     s.setsockopt(
                         so.SOL_SOCKET, so.SO_BINDTODEVICE, iface.encode())
@@ -83,7 +83,7 @@ def check_port(ip, port, timeout=1, double_check=False, iface: str = None):
             raise
         except OSError as e:
             if e.errno == 24:
-                sleep(0.15)
+                sleep(0.25)
                 continue
             raise
 

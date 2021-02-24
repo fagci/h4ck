@@ -1,51 +1,65 @@
 #!/usr/bin/env -S python -u
-from time import sleep
+from pathlib import Path
 
 from fire import Fire
 
-from lib.scan import check_port, generate_ips, get_banner, process_each
+from lib.scan import check_port, generate_ips, process_each
 
 __author__ = 'Mikhail Yudin aka fagci'
 
-
-def check_ip(ip, print_lock, port, timeout, banner, file_path, double_check=False, interface=None):
-    port_open_res = check_port(
-        ip, port, timeout, double_check=double_check, iface=interface)
-    if port_open_res:
-        b = ''
-        if banner:
-            s = None
-            if port == 554:
-                s = 'OPTIONS * RTSP/1.0\r\nCSeq: 1\r\n\r\n'
-            b = get_banner(ip, port, send=s)
-            if b and len(str(banner)) > 1 and str(banner) not in b:
-                return
-        with print_lock:
-            print(f'{int(port_open_res[1]*1000):>4} ms', ip, b)
-            while True:
-                try:
-                    with open(file_path, 'a') as f:
-                        f.write(f'{ip}\n')
-                    break
-                except OSError:
-                    sleep(0.25)
-                    continue
+counter = 0
+max_count = 1024
 
 
-def check_ips(port: int, count: int = 1_000_000, workers: int = 2048, timeout=1.5, banner=None, fresh=False, double_check=False, i=None):
-    file_path = f'./local/hosts_{port}.txt'
-    if fresh and input(f'Delete hosts_{port}.txt? y/n: ').lower() == 'y':
-        import os
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except FileNotFoundError:
-                print('No such file.')
-            else:
-                print('Removed.')
-    ips = generate_ips(count)
-    process_each(check_ip, ips, workers, port, timeout,
-                 banner, file_path, double_check, i)
+def check(ip, pl, out, *scanopts):
+    global counter
+
+    with pl:
+        if counter >= max_count:
+            raise StopIteration()
+
+    res = check_port(ip, *scanopts)
+
+    if res:
+        _, time = res
+
+        with pl:
+            if counter < max_count:  # precision ensurance
+                counter += 1
+                print(f'{counter:<4} {ip:<15} {int(time*1000):>4} ms')
+                out.write(f'{ip}\n')
+
+
+def check_ips(p: int, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f=False, F=False, d=False, i=None):
+    """Scan random ips for port
+
+    :param int p: port to check
+    :param int c: needed ips count
+    :param int l: maximum processing IPs
+    :param int w: workers count
+    :param float t: connect timeout
+    :param bool f: overwrite result file w/prompt
+    :param bool F: force overwrite result file
+    :param bool d: double check each host
+    :param bool i: network interface to use"""
+    global max_count
+
+    max_count = c
+
+    results_file = Path(f'./local/hosts_{p}.txt')
+
+    if F:
+        f = True
+    elif f:
+        f = input(f'Delete hosts_{p}.txt? y/n: ').lower() == 'y'
+
+    ips = generate_ips(l)
+
+    try:
+        with open(results_file, 'w' if f else 'a') as out:
+            process_each(check, ips, w, out, p, t, d, i)
+    except KeyboardInterrupt:
+        print('Interrupted by user.')
 
 
 if __name__ == "__main__":
