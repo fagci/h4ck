@@ -2,15 +2,15 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from pathlib import Path
-import re
 from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, timeout
-from time import sleep
+from time import sleep, time
 
 from fire import Fire
 from tqdm import tqdm
 
 
 fake_path = '/f4k3p4th'
+
 work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
 data_dir = work_dir / 'data'
@@ -21,8 +21,6 @@ creds_file = data_dir / 'rtsp_creds.txt'
 
 paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
-
-header_re = re.compile(r'RTSP/\d\.\d (\d\d\d)')
 
 
 def query(connection, url):
@@ -35,9 +33,9 @@ def query(connection, url):
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
-        header_matches = header_re.findall(response)
-        if header_matches:
-            return int(header_matches[0])
+        if response.startswth('RTSP/'):
+            _, code, msg = response.split(None, 2)
+            return int(code)
     except KeyboardInterrupt:
         raise
     except BrokenPipeError:
@@ -62,8 +60,9 @@ def get_url(host, port=554, path='', cred=''):
 
 
 def connect(host, port, interface) -> SocketIO:
-    retries = 3
-    while retries:
+    start = time()
+
+    while time() - start < 10:
         try:
             c = create_connection((host, int(port)), 3)
             if interface:
@@ -71,9 +70,10 @@ def connect(host, port, interface) -> SocketIO:
             return c
         except KeyboardInterrupt:
             raise
+        except OSError:
+            sleep(1)
         except:
-            sleep(1.5/retries)
-            retries -= 1
+            return
 
 
 def process_target(target_params):
@@ -86,37 +86,37 @@ def process_target(target_params):
         return results  # next host
 
     for path in paths:
-        p_url = get_url(host, port, path)
-        code = query(connection, p_url)
+        url = get_url(host, port, path)
+        code = query(connection, url)
 
         if code >= 500:
             connection.close()
             return results  # first request fail, cant continue
 
-        if code not in [200, 401, 403]:
+        if (not 200 <= code < 300) and code not in [401, 403]:
             continue
 
         if path == fake_path:
             break
 
-        if code == 200:
-            results.append(p_url)
+        if 200 <= code < 300:
+            results.append(url)
             if single_path:
                 connection.close()
                 return results
             continue
 
         for cred in creds:
-            c_url = get_url(host, port, path, cred)
-            code = query(connection, c_url)
+            url = get_url(host, port, path, cred)
+            code = query(connection, url)
             if code >= 500:
                 connection.close()
                 return results  # something goes wrong =(
 
-            if code != 200:
+            if not 200 <= code < 300:
                 continue  # access denied
 
-            results.append(c_url)
+            results.append(url)
             if single_path:
                 connection.close()
                 return results
