@@ -2,14 +2,14 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from pathlib import Path
-from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, timeout
+from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, socket, timeout
 from time import sleep, time
 
 from fire import Fire
 from tqdm import tqdm
 
 
-fake_path = '/f4k3p4th'
+fake_path = '/i_am_internet_researcher'
 
 work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,13 +22,27 @@ creds_file = data_dir / 'rtsp_creds.txt'
 paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
 
+cseqs = dict()
 
-def query(connection, url):
+
+def query(connection: socket, url='*'):
+    method = 'OPTIONS' if url == '*' else 'DESCRIBE'
+
+    cseq = 1
+
+    if url != '*':
+        if cseqs.get(connection):
+            cseq = cseqs.get(connection) + 1
+        else:
+            cseq = 2
+
+    cseqs[connection] = cseq
+
     request = (
-        f'DESCRIBE {url} RTSP/1.0\r\n'
-        'CSeq: 2\r\n'
+        '%s %s RTSP/1.0\r\n'
+        'CSeq: %d\r\n'
         '\r\n'
-    )
+    ) % (method, url, cseq)
 
     try:
         connection.sendall(request.encode())
@@ -77,6 +91,7 @@ def connect(host, port, interface) -> SocketIO:
             sleep(1)
         except:
             return
+        print('Retry')
 
 
 def process_target(target_params):
@@ -87,6 +102,11 @@ def process_target(target_params):
 
     if not connection:
         return results  # next host
+
+    code = query(connection)
+
+    if not 200 <= code < 300:
+        return results
 
     for path in paths:
         url = get_url(host, port, path)
