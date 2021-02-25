@@ -2,7 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from pathlib import Path
-from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, timeout
+from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, timeout
 from time import sleep, time
 
 from fire import Fire
@@ -33,7 +33,7 @@ def query(connection, url):
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
-        if response.startswth('RTSP/'):
+        if response.startswith('RTSP/'):
             _, code, msg = response.split(None, 2)
             code = int(code)
             if code == 401 and 'digest' in response.lower():
@@ -131,6 +131,8 @@ def process_target(target_params):
 
 def main(H='', w=None, sp=False, i=''):
     hosts_file = H or local_dir / 'hosts_554.txt'
+
+    setdefaulttimeout(3)
 
     with ThreadPoolExecutor(w) as ex:
         with open(hosts_file) as hf:
