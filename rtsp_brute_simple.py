@@ -44,6 +44,8 @@ def query(connection: socket, url='*'):
         '\r\n'
     ) % (method, url, cseq)
 
+    # print('<< %s', request)
+
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
@@ -52,6 +54,7 @@ def query(connection: socket, url='*'):
             code = int(code)
             if code == 401 and 'digest' in response.lower():
                 return 500  # lazy to implement for now
+            # print('>> %s' % response)
             return code
     except KeyboardInterrupt:
         raise
@@ -64,7 +67,7 @@ def query(connection: socket, url='*'):
     except UnicodeDecodeError:
         pass
     except Exception as e:
-        print(repr(e))
+        # print(repr(e))
         pass
 
     return 500
@@ -91,6 +94,7 @@ def connect(host, port, interface) -> SocketIO:
             sleep(1)
         except:
             return
+        print('Retry')
 
 
 def process_target(target_params):
@@ -111,17 +115,22 @@ def process_target(target_params):
         url = get_url(host, port, path)
         code = query(connection, url)
 
+        if code == 451:  # bad url, no supporting 4 now
+            connection.close()
+            return results
+
         if code >= 500:
             connection.close()
             return results  # first request fail, cant continue
 
-        if (not 200 <= code < 300) and code not in [401, 403]:
+        # 403 seems nothing about auth, so next path
+        if (not 200 <= code < 300) and (code not in [401]):
             continue
 
-        if path == fake_path:
-            break
-
         if 200 <= code < 300:
+            if path == fake_path:
+                connection.close()
+                return results
             results.append(url)
             if single_path:
                 connection.close()
@@ -143,6 +152,9 @@ def process_target(target_params):
                 connection.close()
                 return results
             break  # one cred per path is enough
+        # if no one cred accepted,
+        # we have no cred for another paths i think
+        break
 
     connection.close()
     return results
