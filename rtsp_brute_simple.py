@@ -35,7 +35,10 @@ def query(connection, url):
         response = connection.recv(1024).decode()
         if response.startswth('RTSP/'):
             _, code, msg = response.split(None, 2)
-            return int(code)
+            code = int(code)
+            if code == 401 and 'digest' in response.lower():
+                return 500  # lazy to implement for now
+            return code
     except KeyboardInterrupt:
         raise
     except BrokenPipeError:
