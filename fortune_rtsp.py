@@ -23,6 +23,7 @@ def check(ip, pl, out, p, t, i):
     start = time()
     code = 500
     response = ''
+    c = None
 
     while time() - start < t*2.5:
         try:
@@ -39,20 +40,29 @@ def check(ip, pl, out, p, t, i):
         except OSError:
             sleep(1)
         except:
-            return
+            break
 
-    if int(code) == 200:
-        server = ''
-        for h in response.splitlines()[1:]:
-            if h.startswith('Server'):
-                _, server = h.split(None, 1)
-                server = server.strip()
-                break
-        with pl:
-            if counter < max_count:  # precision ensurance
-                counter += 1
-                print(f'{counter:<4} {ip:<15} {server[:20]}')
-                out.write(f'{ip}\n')
+    try:
+        c.close()
+    except:
+        pass
+
+    is_ok = 200 <= int(code) < 300
+
+    if not is_ok:
+        return
+
+    server = ''
+    for h in response.splitlines()[1:]:
+        if h.startswith('Server'):
+            _, server = h.split(None, 1)
+            server = server.strip()
+            break
+    with pl:
+        if counter < max_count:  # precision ensurance
+            counter += 1
+            print(f'{counter:<4} {ip:<15} {server[:20]}')
+            out.write(f'{ip}\n')
 
 
 def check_ips(p: int, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f=False, F=False, i=None):
