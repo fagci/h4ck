@@ -22,8 +22,9 @@ def check(ip, pl, out, p, t, i):
 
     start = time()
     code = 500
+    response = ''
 
-    while time() - start < t*3:
+    while time() - start < t*2.5:
         try:
             c = create_connection((ip, int(p)), t)
             if i:
@@ -41,10 +42,16 @@ def check(ip, pl, out, p, t, i):
             return
 
     if int(code) == 200:
+        server = ''
+        for h in response.splitlines()[1:]:
+            if h.startswith('Server'):
+                _, server = h.split(None, 1)
+                server = server.strip()
+                break
         with pl:
             if counter < max_count:  # precision ensurance
                 counter += 1
-                print(f'{counter:<4} {ip:<15}')
+                print(f'{counter:<4} {ip:<15} {server[:20]}')
                 out.write(f'{ip}\n')
 
 
