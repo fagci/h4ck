@@ -155,6 +155,7 @@ def process_target(target_params):
 
 
 def main(H='', w=None, sp=False, i=''):
+    results = []
     hosts_file = H or local_dir / 'hosts_554.txt'
 
     setdefaulttimeout(3)
@@ -175,18 +176,15 @@ def main(H='', w=None, sp=False, i=''):
                 future = ex.submit(process_target, arg)
                 futures[future] = arg
 
-            results = []
-
             with tqdm(total=len(futures)) as pb:
                 for future in as_completed(futures):
                     host, port, *_ = futures[future]
                     res = future.result()
                     pb.update()
-                    for r in res:
-                        results.append(r)
+                    results += res
 
-            for r in results:
-                print(r)
+    for r in results:
+        print(r)
 
 
 if __name__ == "__main__":
