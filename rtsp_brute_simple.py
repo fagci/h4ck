@@ -106,57 +106,52 @@ def process_target(target_params):
     if not connection:
         return results  # next host
 
-    code = query(connection)
+    with connection:
+        code = query(connection)
 
-    if not 200 <= code < 300:
-        return results
-
-    for path in paths:
-        url = get_url(host, port, path)
-        code = query(connection, url)
-
-        if code == 451:  # bad url, no supporting 4 now
-            connection.close()
+        if not 200 <= code < 300:
             return results
 
-        if code >= 500:
-            connection.close()
-            return results  # first request fail, cant continue
-
-        # 403 seems nothing about auth, so next path
-        if (not 200 <= code < 300) and (code not in [401]):
-            continue
-
-        if 200 <= code < 300:
-            if path == fake_path:
-                connection.close()
-                return results
-            results.append(url)
-            if single_path:
-                connection.close()
-                return results
-            continue
-
-        for cred in creds:
-            url = get_url(host, port, path, cred)
+        for path in paths:
+            url = get_url(host, port, path)
             code = query(connection, url)
-            if code >= 500:
-                connection.close()
-                return results  # something goes wrong =(
 
-            if not 200 <= code < 300:
-                continue  # access denied
-
-            results.append(url)
-            if single_path:
-                connection.close()
+            # 451 is bad URL in DESCRIBE request
+            # can be just path or with "?" at end
+            # but not care for now
+            if code == 451 or code >= 500:
                 return results
-            break  # one cred per path is enough
-        # if no one cred accepted,
-        # we have no cred for another paths i think
-        break
 
-    connection.close()
+            if 200 <= code < 300:
+                if path == fake_path:
+                    return results
+
+                results.append(url)
+
+                if single_path:
+                    return results
+
+                continue
+
+            if code == 401:
+                # bruteforcing creds
+                for cred in creds:
+                    url = get_url(host, port, path, cred)
+                    code = query(connection, url)
+
+                    if code >= 500:
+                        return results
+
+                    if 200 <= code < 300:
+                        results.append(url)
+                        if single_path:
+                            return results
+                        break  # one cred per path is enough
+
+                # if no one cred accepted,
+                # we have no cred for another paths i think
+                break
+
     return results
 
 
