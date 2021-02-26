@@ -9,8 +9,6 @@ from fire import Fire
 from tqdm import tqdm
 
 
-fake_path = '/i_am_internet_researcher'
-
 work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
 data_dir = work_dir / 'data'
@@ -19,7 +17,7 @@ local_dir = work_dir / 'local'
 paths_file = data_dir / 'rtsp_paths.txt'
 creds_file = data_dir / 'rtsp_creds.txt'
 
-paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
+paths = [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
 
 cseqs = dict()
@@ -44,7 +42,7 @@ def query(connection: socket, url='*'):
         '\r\n'
     ) % (method, url, cseq)
 
-    # print('<< %s', request)
+    print('<< %s', request)
 
     try:
         connection.sendall(request.encode())
@@ -54,7 +52,7 @@ def query(connection: socket, url='*'):
             code = int(code)
             if code == 401 and 'digest' in response.lower():
                 return 500  # lazy to implement for now
-            # print('>> %s' % response)
+            print('>> %s' % response)
             return code
     except KeyboardInterrupt:
         raise
@@ -122,14 +120,9 @@ def process_target(target_params):
                 return results
 
             if 200 <= code < 300:
-                if path == fake_path:
-                    return results
-
                 results.append(url)
-
                 if single_path:
                     return results
-
                 continue
 
             if code == 401:
