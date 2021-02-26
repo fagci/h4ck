@@ -23,6 +23,7 @@ paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
 
 cseqs = dict()
+debug = False
 
 
 def query(connection: socket, url='*'):
@@ -44,17 +45,19 @@ def query(connection: socket, url='*'):
         '\r\n'
     ) % (method, url, cseq)
 
-    # print('<< %s', request)
+    if debug:
+        print('<< %s', request.splitlines()[0])
 
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
+        if debug:
+            print('>> %s' % response.splitlines()[0])
         if response.startswith('RTSP/'):
             _, code, msg = response.split(None, 2)
             code = int(code)
             if code == 401 and 'digest' in response.lower():
                 return 500  # lazy to implement for now
-            # print('>> %s' % response)
             return code
     except KeyboardInterrupt:
         raise
@@ -67,7 +70,6 @@ def query(connection: socket, url='*'):
     except UnicodeDecodeError:
         pass
     except Exception as e:
-        # print(repr(e))
         pass
 
     return 500
@@ -118,7 +120,10 @@ def process_target(target_params):
             # 451 is bad URL in DESCRIBE request
             # can be just path or with "?" at end
             # but not care for now
-            if code == 451 or code >= 500:
+            if code == 451:
+                return results
+
+            if code >= 500:
                 return results
 
             if 200 <= code < 300:
@@ -153,7 +158,9 @@ def process_target(target_params):
     return results
 
 
-def main(H='', w=None, sp=False, i=''):
+def main(H='', w=None, sp=False, i='', d=False):
+    global debug
+    debug = d
     results = []
     hosts_file = H or local_dir / 'hosts_554.txt'
 
