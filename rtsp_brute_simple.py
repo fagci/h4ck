@@ -94,7 +94,6 @@ def connect(host, port, interface) -> SocketIO:
             sleep(1)
         except:
             return
-        print('Retry')
 
 
 def process_target(target_params):
