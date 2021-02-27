@@ -17,7 +17,7 @@ data_dir = work_dir / 'data'
 local_dir = work_dir / 'local'
 
 paths_file = data_dir / 'rtsp_paths.txt'
-creds_file = data_dir / 'rtsp_creds.txt'
+creds_file = data_dir / 'rtsp_creds_my.txt'
 
 paths = [root_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
@@ -116,7 +116,7 @@ def process_target(target_params):
         # OPTIONS query
         code = query(connection)
 
-        if not 200 <= code < 300:
+        if code != 200:
             return results
 
         for path in paths:
@@ -132,7 +132,11 @@ def process_target(target_params):
             if code == 451:
                 return results
 
-            if 200 <= code < 300:
+            # potential ban?
+            if code == 403:
+                return results
+
+            if code == 200:
                 results.append(url)
 
                 if single_path or path == root_path:
@@ -149,7 +153,7 @@ def process_target(target_params):
                     if code >= 500:
                         return results
 
-                    if 200 <= code < 300:
+                    if code == 200:
                         results.append(url)
                         if single_path:
                             return results
@@ -166,16 +170,16 @@ def main(H='', w=None, sp=False, i='', d=False):
     global debug
     debug = d
     results = []
-    hosts_file = H or local_dir / 'hosts_554.txt'
+    hosts_file_path = H or local_dir / 'hosts_554.txt'
 
     setdefaulttimeout(3)
 
-    with ThreadPoolExecutor(w) as ex:
-        with open(hosts_file) as hf:
+    with ThreadPoolExecutor(w) as executor:
+        with open(hosts_file_path) as hosts_file:
             futures = {}
 
-            for ln in hf:
-                host = ln.rstrip()
+            for line in hosts_file:
+                host = line.rstrip()
                 port = 554
 
                 if ':' in host:
@@ -183,18 +187,18 @@ def main(H='', w=None, sp=False, i='', d=False):
 
                 arg = (host, port, sp, i)
 
-                future = ex.submit(process_target, arg)
+                future = executor.submit(process_target, arg)
                 futures[future] = arg
 
-            with tqdm(total=len(futures)) as pb:
+            with tqdm(total=len(futures)) as progress:
                 for future in as_completed(futures):
                     host, port, *_ = futures[future]
                     res = future.result()
-                    pb.update()
+                    progress.update()
                     results += res
 
-    for r in results:
-        print(r)
+    for result in results:
+        print(result)
 
 
 if __name__ == "__main__":
