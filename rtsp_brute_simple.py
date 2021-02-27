@@ -29,13 +29,12 @@ debug = False
 def query(connection: socket, url='*'):
     method = 'OPTIONS' if url == '*' else 'DESCRIBE'
 
-    cseq = 1
+    if url == '*':
+        cseq = 0
+    else:
+        cseq = cseqs.get(connection, 0)
 
-    if url != '*':
-        if cseqs.get(connection):
-            cseq = cseqs.get(connection) + 1
-        else:
-            cseq = 2
+    cseq += 1
 
     cseqs[connection] = cseq
 
@@ -46,19 +45,22 @@ def query(connection: socket, url='*'):
     ) % (method, url, cseq)
 
     if debug:
-        print('<< %s', request.splitlines()[0])
+        print('<< %s', request)
 
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
+
         if debug:
-            print('>> %s' % response.splitlines()[0])
+            print('>> %s' % response)
+
         if response.startswith('RTSP/'):
-            _, code, msg = response.split(None, 2)
+            _, code, _ = response.split(None, 2)
             code = int(code)
             if code == 401 and 'digest' in response.lower():
                 return 500  # lazy to implement for now
             return code
+
     except KeyboardInterrupt:
         raise
     except BrokenPipeError:
@@ -69,7 +71,7 @@ def query(connection: socket, url='*'):
         pass
     except UnicodeDecodeError:
         pass
-    except Exception as e:
+    except:
         pass
 
     return 500
@@ -77,8 +79,8 @@ def query(connection: socket, url='*'):
 
 def get_url(host, port=554, path='', cred=''):
     if cred:
-        cred = f'{cred}@'
-    return f'rtsp://{cred}{host}:{port}{path}'
+        cred = '%s@' % cred
+    return 'rtsp://%s%s:%d%s' % (cred, host, port, path)
 
 
 def connect(host, port, interface) -> SocketIO:
@@ -121,21 +123,19 @@ def process_target(target_params):
             url = get_url(host, port, path)
             code = query(connection, url)
 
+            if code >= 500:
+                return results
+
             # 451 is bad URL in DESCRIBE request
             # can be just path or with "?" at end
             # but not care for now
             if code == 451:
                 return results
 
-            if code >= 500:
-                return results
-
             if 200 <= code < 300:
                 results.append(url)
-                if path == fake_path:
-                    return results
 
-                if single_path:
+                if single_path or path == fake_path:
                     return results
 
                 continue
