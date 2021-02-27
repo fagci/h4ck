@@ -9,7 +9,7 @@ from fire import Fire
 from tqdm import tqdm
 
 
-fake_path = '/any_path'
+root_path = '/'
 
 work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,7 +19,7 @@ local_dir = work_dir / 'local'
 paths_file = data_dir / 'rtsp_paths.txt'
 creds_file = data_dir / 'rtsp_creds.txt'
 
-paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
+paths = [root_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
 
 cseqs = dict()
@@ -135,7 +135,7 @@ def process_target(target_params):
             if 200 <= code < 300:
                 results.append(url)
 
-                if single_path or path == fake_path:
+                if single_path or path == root_path:
                     return results
 
                 continue
