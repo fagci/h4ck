@@ -84,7 +84,8 @@ def get_url(host, port=554, path='', cred=''):
 def connect(host, port, interface) -> SocketIO:
     start = time()
 
-    while time() - start < 10:
+    # for OSError, timeout handled only once
+    while time() - start < 3:
         try:
             c = create_connection((host, int(port)), 3)
             if interface:
@@ -92,6 +93,8 @@ def connect(host, port, interface) -> SocketIO:
             return c
         except KeyboardInterrupt:
             raise
+        except timeout:
+            return
         except OSError:
             sleep(1)
         except:
@@ -108,6 +111,7 @@ def process_target(target_params):
         return results  # next host
 
     with connection:
+        # OPTIONS query
         code = query(connection)
 
         if not 200 <= code < 300:
