@@ -9,7 +9,7 @@ from fire import Fire
 from tqdm import tqdm
 
 
-root_path = '/'
+fake_path = '/i_am_network_researcher'
 
 work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,7 +19,7 @@ local_dir = work_dir / 'local'
 paths_file = data_dir / 'rtsp_paths1.txt'
 creds_file = data_dir / 'rtsp_creds_my.txt'
 
-paths = [root_path] + [ln.rstrip() for ln in open(paths_file)]
+paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
 creds = [ln.rstrip() for ln in open(creds_file)]
 
 cseqs = dict()
@@ -117,7 +117,7 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
         try:
             if debug:
                 print('Conn to', host, port)
-            c = create_connection((host, port), 3)
+            c = create_connection((host, port), 2)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
             if debug:
@@ -135,7 +135,7 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
             sleep(1)
         except Exception as e:
             if debug:
-                print(e)
+                print(repr(e))
             return
 
 
@@ -170,13 +170,18 @@ def process_target(target_params) -> list[str]:
                 return results
 
             # potential ban?
-            if code == 400 or code == 403:
+            if code == 403:
                 return results
 
             if code == 200:
+                # if fake_path is ok,
+                # root path will be ok too
+                if path == fake_path:
+                    url = get_url(host, port, '/')
+
                 results.append(url)
 
-                if single_path or path == root_path:
+                if single_path:
                     return results
 
                 continue
