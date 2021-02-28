@@ -26,7 +26,7 @@ def check(ip, pl, out, p, t, i):
     c = None
     dt = None
 
-    while time() - start < 2:
+    while time() - start < 3:
         try:
             tim = time()
             c = create_connection((ip, int(p)), t)

@@ -86,14 +86,35 @@ def capture_image_ffmpeg(stream_url, img_path):
         return True
 
 
+def capture_image_av(stream_url, img_path):
+    import av
+    options = {
+        'rtsp_transport': 'tcp',
+        'rtsp_flags': 'prefer_tcp',
+        'stimeout': '60000000',
+    }
+    try:
+        with av.open(stream_url, options=options, timeout=20) as c:
+            vs = c.streams.video[0]
+            if vs.profile and vs.codec_context.format and vs.start_time is not None:
+                for frame in c.decode(video=0):
+                    frame.to_image().save(img_path)
+                    return True
+    except Exception as e:
+        print('Capture error for', stream_url, repr(e), type(e))
+
+    return False
+
+
 def capture_image(stream_url, img_path, prefer_ffmpeg=False):
     if prefer_ffmpeg:
-        return capture_image_ffmpeg(stream_url, img_path)
-
+        return capture_image_av(stream_url, img_path)
+        # return capture_image_ffmpeg(stream_url, img_path)
     try:
         return capture_image_cv2(stream_url, img_path)
     except ImportError:
-        return capture_image_ffmpeg(stream_url, img_path)
+        return capture_image_av(stream_url, img_path)
+        # return capture_image_ffmpeg(stream_url, img_path)
 
 # AUTH ====================
 
@@ -116,8 +137,6 @@ def get_basic_auth_header(_, __, username, password):
 
 
 def get_digest_auth_header(parts, rtsp_method, url, username, password):
-    print(parts, username, password)
-
     realm = parts.get('realm')
     nonce = parts.get('nonce')
 
