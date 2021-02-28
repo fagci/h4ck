@@ -1,3 +1,4 @@
+admin:1111
 admin:admin
 666666:666666
 888888:888888
@@ -9,7 +10,6 @@ Admin:12345
 Admin:123456
 admin:
 admin:00000000
-admin:1111
 admin:1111111
 admin:123123
 admin:1234

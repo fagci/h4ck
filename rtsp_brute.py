@@ -41,10 +41,15 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
 
     headers_str = '\r\n'.join('%s: %s' % v for v in headers.items())
 
+    if headers_str:
+        headers_str += '\r\n'
+
     request = (
         '%s %s RTSP/1.0\r\n'
         'CSeq: %d\r\n'
         '%s'
+        'User-Agent: Mozilla/5.0\r\n'
+        'Accept: application/sdp\r\n'
         '\r\n'
     ) % (method, url, cseq, headers_str)
 
@@ -78,13 +83,21 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
 
     except KeyboardInterrupt:
         raise
-    except BrokenPipeError:
+    except BrokenPipeError as e:
+        if debug:
+            print(repr(e))
         pass
-    except timeout:
+    except timeout as e:
+        if debug:
+            print(repr(e))
         pass
-    except ConnectionResetError:
+    except ConnectionResetError as e:
+        if debug:
+            print(repr(e))
         pass
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as e:
+        if debug:
+            print(repr(e))
         pass
     except Exception as e:
         if debug:
@@ -108,7 +121,7 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
         try:
             if debug:
                 print('Conn to', host, port)
-            c = create_connection((host, port), 2)
+            c = create_connection((host, port), 3)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
             if debug:
@@ -150,19 +163,12 @@ def process_target(target_params) -> list[str]:
             url = get_url(host, port, path)
             code, headers = query(connection, url)
 
-            # 451 is bad URL in DESCRIBE request
-            # can be just path or with "?" at end
-            # >> fixed by paths file
-            # if code == 451:
-            # code = query(connection, path)
-            # return results
-
             if code >= 500:
                 return results
 
             # potential ban?
-            if code == 403:
-                return results
+            # if code == 403:
+            #     return results
 
             if code == 200:
                 # if fake_path is ok,
@@ -208,7 +214,7 @@ def main(H='', w=None, sp=False, i='', d=False):
     results = []
     hosts_file_path = H or local_dir / 'hosts_554.txt'
 
-    setdefaulttimeout(3)
+    setdefaulttimeout(5)
 
     with ThreadPoolExecutor(w) as executor:
         with open(hosts_file_path) as hosts_file:

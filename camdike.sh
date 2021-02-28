@@ -17,6 +17,7 @@ while true; do
 
     echo
     echo Capture
-    ./rtsp_capture.py -ff local/bruted.txt -cb local/campost.sh
+    ./rtsp_capture.py local/bruted.txt -ff \
+        -cb local/campost.sh
 done
 
