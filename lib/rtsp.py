@@ -133,7 +133,7 @@ def get_auth_header_fn(headers):
 def get_basic_auth_header(_, __, username, password):
     from base64 import b64encode
     b64 = b64encode(('%s:%s' % (username, password)).encode('ascii'))
-    return {'Authorization': 'Basic %s' % str(b64, 'utf-8')}
+    return {'Authorization': 'Basic %s' % b64.decode()}
 
 
 def get_digest_auth_header(parts, rtsp_method, url, username, password):

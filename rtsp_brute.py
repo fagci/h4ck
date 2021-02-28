@@ -214,7 +214,7 @@ def main(H='', w=None, sp=False, i='', d=False):
     results = []
     hosts_file_path = H or local_dir / 'hosts_554.txt'
 
-    setdefaulttimeout(5)
+    setdefaulttimeout(3)
 
     with ThreadPoolExecutor(w) as executor:
         with open(hosts_file_path) as hosts_file:
