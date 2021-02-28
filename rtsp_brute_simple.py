@@ -26,7 +26,7 @@ cseqs = dict()
 debug = False
 
 
-def query(connection: socket, url='*'):
+def query(connection: socket, url: str = '*') -> int:
     method = 'OPTIONS' if url == '*' else 'DESCRIBE'
 
     if url == '*':
@@ -41,24 +41,40 @@ def query(connection: socket, url='*'):
     request = (
         '%s %s RTSP/1.0\r\n'
         'CSeq: %d\r\n'
+        # 'User-Agent: LibVLC/2.0.1\r\n'
         '\r\n'
     ) % (method, url, cseq)
 
     if debug:
-        print('<< %s', request)
+        print('\n<< %s' % request.rstrip())
 
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
 
         if debug:
-            print('>> %s' % response)
+            print('\n>> %s' % response.rstrip())
 
         if response.startswith('RTSP/'):
             _, code, _ = response.split(None, 2)
             code = int(code)
-            if code == 401 and 'digest' in response.lower():
-                return 500  # lazy to implement for now
+
+            headers = {}
+            for ln in response.splitlines()[2:]:
+                if ln:
+                    k, v = ln.split(':', 1)
+                    headers[k] = v.strip()
+
+            if code == 401:
+                auth = headers['WWW-Authenticate']
+                if auth.startswith('Digest'):
+                    if debug:
+                        import re
+                        kv_re = re.compile(r'([^=, ]+?)="([^"]+?)"')
+                        kv = kv_re.findall(auth)
+                        print(kv)
+                    return 500  # lazy to implement for now
+
             return code
 
     except KeyboardInterrupt:
@@ -71,25 +87,27 @@ def query(connection: socket, url='*'):
         pass
     except UnicodeDecodeError:
         pass
-    except:
+    except Exception as e:
+        if debug:
+            print(repr(e))
         pass
 
     return 500
 
 
-def get_url(host, port=554, path='', cred=''):
+def get_url(host: str, port: int = 554, path: str = '', cred: str = '') -> str:
     if cred:
         cred = '%s@' % cred
     return 'rtsp://%s%s:%d%s' % (cred, host, port, path)
 
 
-def connect(host, port, interface) -> SocketIO:
+def connect(host: str, port: int, interface: str = '') -> SocketIO:
     start = time()
 
     # for OSError, timeout handled only once
     while time() - start < 3:
         try:
-            c = create_connection((host, int(port)), 3)
+            c = create_connection((host, port), 3)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
             return c
@@ -99,11 +117,13 @@ def connect(host, port, interface) -> SocketIO:
             return
         except OSError:
             sleep(1)
-        except:
+        except Exception as e:
+            if debug:
+                print(e)
             return
 
 
-def process_target(target_params):
+def process_target(target_params) -> list[str]:
     host, port, single_path, interface = target_params
     connection = connect(host, port, interface)
 
@@ -133,7 +153,7 @@ def process_target(target_params):
                 return results
 
             # potential ban?
-            if code == 403:
+            if code == 400 or code == 403:
                 return results
 
             if code == 200:

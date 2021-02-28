@@ -1,6 +1,6 @@
 #!/usr/bin/env -S python -u
 from pathlib import Path
-from socket import SOL_SOCKET, SO_BINDTODEVICE, create_connection
+from socket import SOL_SOCKET, SO_BINDTODEVICE, create_connection, timeout
 from time import time, sleep
 
 from fire import Fire
@@ -24,19 +24,24 @@ def check(ip, pl, out, p, t, i):
     code = 500
     response = ''
     c = None
+    dt = None
 
-    while time() - start < t*2.5:
+    while time() - start < 2:
         try:
+            tim = time()
             c = create_connection((ip, int(p)), t)
+            dt = time() - tim
             if i:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, i.encode())
             c.sendall(REQ)
             response = c.recv(1024).decode()
             if response.startswith('RTSP/'):
-                _, code, msg = response.split(None, 2)
+                _, code, _ = response.split(None, 2)
             break
         except KeyboardInterrupt:
             raise
+        except timeout:
+            break
         except OSError:
             sleep(1)
         except:
@@ -61,11 +66,12 @@ def check(ip, pl, out, p, t, i):
     with pl:
         if counter < max_count:  # precision ensurance
             counter += 1
-            print(f'{counter:<4} {ip:<15} {server[:20]}')
+            print(
+                f'{counter:<4} {ip:<15} ({int(dt*1000):>4} ms) {server[:20]}')
             out.write(f'{ip}\n')
 
 
-def check_ips(p: int, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f=False, F=False, i=None):
+def check_ips(p: int = 554, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f=False, F=False, i=None):
     """Scan random ips for port
 
     :param int p: port to check
