@@ -94,3 +94,78 @@ def capture_image(stream_url, img_path, prefer_ffmpeg=False):
         return capture_image_cv2(stream_url, img_path)
     except ImportError:
         return capture_image_ffmpeg(stream_url, img_path)
+
+# AUTH ====================
+
+
+def get_auth_header_fn(headers):
+    auth_header = headers['www-authenticate']
+    method, params = auth_header.split(None, 1)
+    if method == 'Basic':
+        return get_basic_auth_header
+    elif method == 'Digest':
+        from functools import partial
+        parts = _parse_digest_header(params)
+        return partial(get_digest_auth_header, parts)
+
+
+def get_basic_auth_header(_, __, username, password):
+    from base64 import b64encode
+    b64 = b64encode(('%s:%s' % (username, password)).encode())
+    return {'Authorization': 'Basic %s' % b64.decode()}
+
+
+def get_digest_auth_header(parts, rtsp_method, url, username, password):
+    print(parts, username, password)
+
+    realm = parts.get('realm')
+    nonce = parts.get('nonce')
+
+    hash_digest = _get_hasher(parts.get('algorithm', 'MD5').upper())
+
+    A1 = '%s:%s:%s' % (username, realm, password)
+    A2 = '%s:%s' % (rtsp_method, url)
+
+    HA1 = hash_digest(A1)
+    HA2 = hash_digest(A2)
+
+    A3 = '%s:%s:%s' % (HA1, nonce, HA2)
+
+    response = hash_digest(A3)
+
+    return {
+        'Authorization': (
+            'Digest '
+            'username="%s", '
+            'realm="%s", '
+            'nonce="%s", '
+            'uri="%s", '
+            'response="%s"'
+        ) % (username, realm, nonce, url, response)
+    }
+
+
+def _parse_digest_header(header):
+    from urllib.request import parse_http_list
+
+    fields = {}
+
+    for field in parse_http_list(header):
+        k, v = field.split('=', 1)
+        v = v.strip().strip('"')
+        fields[k.lower()] = v
+
+    return fields
+
+
+def _get_hasher(method='MD5'):
+    from hashlib import md5, sha1, sha256, sha512
+
+    hasher = {
+        'MD5': md5,
+        'SHA': sha1,
+        'SHA-256': sha256,
+        'SHA-512': sha512
+    }.get(method)
+
+    return lambda x: hasher(x.encode('ascii')).hexdigest()

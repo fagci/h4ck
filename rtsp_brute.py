@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from lib.rtsp import get_auth_header_fn
 import os
 from pathlib import Path
 from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, socket, timeout
@@ -26,7 +27,7 @@ cseqs = dict()
 debug = False
 
 
-def query(connection: socket, url: str = '*') -> tuple[int, dict]:
+def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, dict]:
     method = 'OPTIONS' if url == '*' else 'DESCRIBE'
 
     if url == '*':
@@ -38,12 +39,14 @@ def query(connection: socket, url: str = '*') -> tuple[int, dict]:
 
     cseqs[connection] = cseq
 
+    headers_str = '\r\n'.join('%s: %s' % v for v in headers.items())
+
     request = (
         '%s %s RTSP/1.0\r\n'
         'CSeq: %d\r\n'
-        # 'User-Agent: LibVLC/2.0.1\r\n'
+        '%s'
         '\r\n'
-    ) % (method, url, cseq)
+    ) % (method, url, cseq, headers_str)
 
     if debug:
         print('\n<< %s' % request.rstrip())
@@ -175,23 +178,19 @@ def process_target(target_params) -> list[str]:
                 continue
 
             if code == 401:
-                auth = headers['www-authenticate']
-
-                if auth.startswith('Digest'):
-                    if debug:
-                        print('IMPLEMENT DIGEST AUTH, DEV!!1 =(')
-                    return results
+                auth_fn = get_auth_header_fn(headers)
 
                 # bruteforcing creds
                 for cred in creds:
-                    url = get_url(host, port, path, cred)
-                    code, headers = query(connection, url)
+                    url = get_url(host, port, path)
+                    auth_headers = auth_fn('DESCRIBE', url, *cred.split(':'))
+                    code, headers = query(connection, url, auth_headers)
 
                     if code >= 500:
                         return results
 
                     if code == 200:
-                        results.append(url)
+                        results.append(get_url(host, port, path, cred))
                         if single_path:
                             return results
                         break  # one cred per path is enough
