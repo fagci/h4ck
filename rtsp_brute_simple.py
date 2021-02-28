@@ -16,7 +16,7 @@ work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 data_dir = work_dir / 'data'
 local_dir = work_dir / 'local'
 
-paths_file = data_dir / 'rtsp_paths.txt'
+paths_file = data_dir / 'rtsp_paths1.txt'
 creds_file = data_dir / 'rtsp_creds_my.txt'
 
 paths = [root_path] + [ln.rstrip() for ln in open(paths_file)]
@@ -59,9 +59,17 @@ def query(connection: socket, url: str = '*') -> int:
             _, code, _ = response.split(None, 2)
             code = int(code)
 
+            # cam not uses RFC
+            if code == 200 and 'WWW-Authenticate' in response:
+                if ' Digest ' in response:
+                    return 500
+                return 401
+
             headers = {}
             for ln in response.splitlines()[2:]:
-                if ln:
+                if not ln:
+                    break
+                if ':' in ln:
                     k, v = ln.split(':', 1)
                     headers[k] = v.strip()
 
@@ -107,15 +115,23 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
     # for OSError, timeout handled only once
     while time() - start < 3:
         try:
+            if debug:
+                print('Conn to', host, port)
             c = create_connection((host, port), 3)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
+            if debug:
+                print('Connected to', host, port)
             return c
         except KeyboardInterrupt:
             raise
-        except timeout:
+        except timeout as e:
+            if debug:
+                print(repr(e))
             return
-        except OSError:
+        except OSError as e:
+            if debug:
+                print(repr(e))
             sleep(1)
         except Exception as e:
             if debug:
@@ -143,13 +159,14 @@ def process_target(target_params) -> list[str]:
             url = get_url(host, port, path)
             code = query(connection, url)
 
-            if code >= 500:
-                return results
-
             # 451 is bad URL in DESCRIBE request
             # can be just path or with "?" at end
-            # but not care for now
-            if code == 451:
+            # >> fixed by paths file
+            # if code == 451:
+            # code = query(connection, path)
+            # return results
+
+            if code >= 500:
                 return results
 
             # potential ban?
