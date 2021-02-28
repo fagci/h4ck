@@ -183,6 +183,11 @@ def process_target(target_params) -> list[str]:
 
                 continue
 
+            # auth 4 fake path is bad idea,
+            # so trying another path
+            if path == fake_path:
+                continue
+
             if code == 401:
                 auth_fn = get_auth_header_fn(headers)
 

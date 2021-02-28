@@ -96,12 +96,14 @@ def capture_image_av(stream_url, img_path):
     try:
         with av.open(stream_url, options=options, timeout=20) as c:
             vs = c.streams.video[0]
-            if vs.profile and vs.codec_context.format and vs.start_time is not None:
+            if vs.profile is not None and vs.codec_context.format and vs.start_time is not None:
+                vs.thread_type = "AUTO"
                 for frame in c.decode(video=0):
                     frame.to_image().save(img_path)
                     return True
+
     except Exception as e:
-        print('Capture error for', stream_url, repr(e), type(e))
+        print('[E]', stream_url, repr(e))
 
     return False
 
