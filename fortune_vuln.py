@@ -1,10 +1,16 @@
 #!/usr/bin/env -S python -u
-from functools import partial
+from random import randrange
+from socket import socket
+from typing import ContextManager, Optional
 from fire import Fire
-from requests.sessions import Session
-from lib.scan import check_port, generate_ips, process_each
+from lib.scan import generate_ips, process_each
 
 __author__ = 'Mikhail Yudin aka fagci'
+
+FAKE_PATH = '/%s' % ''.join(chr(randrange(ord('a'), ord('z')))
+                            for _ in range(randrange(3, 16)))
+
+print('Started with', FAKE_PATH, 'fake path')
 
 VULNS = [
     '.env',
@@ -29,30 +35,101 @@ VULNS = [
 ]
 
 
-def check_url(session: Session, ip, port, path):
-    s = 'https' if port == 443 else 'http'
-    url = f'{s}://{ip}/{path}'
-    try:
-        r = session.get(url, allow_redirects=False,
-                        timeout=3, verify=False, stream=True)
-        return r.status_code == 200
-    except:
-        return False
+class Connection(ContextManager):
+    _c: Optional[socket] = None
+    user_agent = 'Mozilla/5.0'
+
+    def __init__(self, host, port, interface: str = ''):
+        self.host = host
+        self.port = port
+        self.interface = interface
+
+    def __enter__(self):
+        from time import time, sleep
+        from socket import create_connection, SOL_SOCKET, SO_BINDTODEVICE
+        start = time()
+
+        while time() - start < 3:
+            try:
+                self._c = create_connection((self.host, self.port), 1.5)
+                if self.interface:
+                    self._c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE,
+                                       self.interface.encode())
+                break
+            except KeyboardInterrupt:
+                raise
+            except OSError:
+                sleep(1)
+
+        return self
+
+    def __exit__(self, *_):
+        if self._c:
+            return self._c.close()
+
+    def http_get(self, url, timeout=3):
+        code = 999
+
+        if not self._c:
+            return code
+
+        req = (
+            'GET %s HTTP/1.1\r\n'
+            'Host: %s\r\n'
+            'User-Agent: %s\r\n'
+            '\r\n\r\n'
+        ) % (url, self.host, self.user_agent)
+
+        try:
+            self._c.settimeout(timeout)
+            self._c.sendall(req.encode())
+            res = self._c.recv(1024).decode()
+            if res.startswith('HTTP/'):
+                _, code, _ = res.split(None, 2)
+        except Exception:
+            pass
+
+        return int(code)
 
 
-def check_ip(ip, print_lock):
+def check_ip(ip, pl, interface):
     for port in [80]:
-        if check_port(ip, port):
-            session = Session()
-            cu = partial(check_url, session, ip, port)
-            vulns_exists = map(cu, VULNS)
-            if any(vulns_exists):
-                with print_lock:
-                    print('+', ip, port)
+        try:
+            with Connection(ip, port, interface) as c:
+                if c.http_get(FAKE_PATH) == 200:
+                    return
+
+                vulns = []
+
+                for url in VULNS:
+                    r = c.http_get(url)
+
+                    if r == 999:
+                        break
+
+                    if r >= 500:
+                        with pl:
+                            print('!', ip, url)
+                        break
+
+                    if r == 200:
+                        vulns.append(url)
+                        with pl:
+                            print('+', ip, url)
+
+                if vulns:
+                    with pl:
+                        t = 'fake' if len(VULNS) == len(vulns) else 'real'
+                        print('+', t, ip, vulns)
+                    return
+
+        except Exception as e:
+            print(repr(e))
+            pass
 
 
-def check_ips(c: int = 200000, w: int = 1024):
-    process_each(check_ip, generate_ips(c), w)
+def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
+    process_each(check_ip, generate_ips(c), w, i)
 
 
 if __name__ == "__main__":

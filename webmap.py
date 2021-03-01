@@ -55,7 +55,7 @@ session = requests.Session()
 def check_path(allow_html: bool, url: str):
     try:
         r = session.get(url, timeout=5, allow_redirects=False,
-                        verify=False, stream=True)
+                        verify=False, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
         if allow_html or r.headers.get('Content-Type') != 'text/html':
             if r.status_code == 200:
                 return True, url, r.headers.get('Content-Length')
