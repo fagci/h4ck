@@ -69,63 +69,66 @@ class Connection(ContextManager):
 
     def http_get(self, url, timeout=3):
         code = 999
+        connection = self._c
 
-        if not self._c:
-            return code
+        if connection:
+            req = (
+                'GET %s HTTP/1.1\r\n'
+                'Host: %s\r\n'
+                'User-Agent: %s\r\n'
+                '\r\n\r\n'
+            ) % (url, self.host, self.user_agent)
 
-        req = (
-            'GET %s HTTP/1.1\r\n'
-            'Host: %s\r\n'
-            'User-Agent: %s\r\n'
-            '\r\n\r\n'
-        ) % (url, self.host, self.user_agent)
+            try:
+                connection.settimeout(timeout)
+                connection.sendall(req.encode())
 
-        try:
-            self._c.settimeout(timeout)
-            self._c.sendall(req.encode())
-            res = self._c.recv(1024).decode()
-            if res.startswith('HTTP/'):
-                _, code, _ = res.split(None, 2)
-        except Exception:
-            pass
+                res = connection.recv(128).decode()
 
-        return int(code)
+                if res.startswith('HTTP/'):
+                    code = int(res.split(None, 2)[1])
+            except OSError:
+                pass
+
+        return code
 
 
 def check_ip(ip, pl, interface):
-    for port in [80]:
-        try:
-            with Connection(ip, port, interface) as c:
-                if c.http_get(FAKE_PATH) == 200:
-                    return
+    try:
+        with Connection(ip, 80, interface) as c:
+            # all queries handled by one script
+            if c.http_get(FAKE_PATH) == 200:
+                return
 
-                vulns = []
+            vulns = []
 
-                for url in VULNS:
-                    r = c.http_get(url)
+            for url in VULNS:
+                code = c.http_get(url)
 
-                    if r == 999:
-                        break
+                # internal error
+                if code == 999:
+                    break
 
-                    if r >= 500:
-                        with pl:
-                            print('!', ip, url)
-                        break
-
-                    if r == 200:
-                        vulns.append(url)
-                        with pl:
-                            print('+', ip, url)
-
-                if vulns:
+                # http server error
+                if code >= 500:
                     with pl:
-                        t = 'fake' if len(VULNS) == len(vulns) else 'real'
-                        print('+', t, ip, vulns)
-                    return
+                        print('E', ip, url)
+                    break
 
-        except Exception as e:
-            print(repr(e))
-            pass
+                if 200 <= code < 300:
+                    vulns.append(url)
+                    with pl:
+                        print('+', ip, url)
+
+            if vulns:
+                t = 'fake' if len(VULNS) == len(vulns) else 'real'
+                with pl:
+                    print('+', t, ip, vulns)
+                return
+
+    except Exception as e:
+        print(repr(e))
+        pass
 
 
 def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
