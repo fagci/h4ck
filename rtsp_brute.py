@@ -87,7 +87,7 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
                     k, v = ln.split(':', 1)
                     headers[k.lower()] = v.strip()
 
-            # cam not uses RFC, fit it
+            # cam not uses RFC, fix it
             if code == 200 and 'WWW-Authenticate' in response:
                 code = 401
 
@@ -97,19 +97,14 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
         raise
     except BrokenPipeError as e:
         logging.error(repr(e))
-        pass
     except timeout as e:
         logging.error(repr(e))
-        pass
     except ConnectionResetError as e:
         logging.error(repr(e))
-        pass
     except UnicodeDecodeError as e:
         logging.error(repr(e))
-        pass
     except Exception as e:
         logging.error(repr(e))
-        pass
 
     return 500, headers
 
@@ -128,6 +123,7 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
         try:
             logging.info('Connecting to %s:%s' % (host, port))
             c = create_connection((host, port), 3)
+            c.settimeout(3)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
             logging.info('Connected to %s:%s' % (host, port))
@@ -145,7 +141,7 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
             return
 
 
-def process_target(target_params) -> list[str]:
+def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
     host, port, single_path, interface = target_params
     connection = connect(host, port, interface)
 
@@ -215,13 +211,11 @@ def process_target(target_params) -> list[str]:
     return results
 
 
-def main(H='', w=None, sp=False, i='', d=False):
+def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False):
     logging.basicConfig(filename=LOG_FILE,
                         level=logging.INFO if d else logging.CRITICAL)
     results = []
     hosts_file_path = H or LOCAL_DIR / 'hosts_554.txt'
-
-    setdefaulttimeout(3)
 
     with ThreadPoolExecutor(w) as executor:
         with open(hosts_file_path) as hosts_file:
