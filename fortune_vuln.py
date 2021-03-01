@@ -1,6 +1,8 @@
 #!/usr/bin/env -S python -u
 from functools import partial
-from lib.scan import check_port, check_url, process, generate_ips
+from fire import Fire
+from requests.sessions import Session
+from lib.scan import check_port, generate_ips, process_each
 
 __author__ = 'Mikhail Yudin aka fagci'
 
@@ -27,29 +29,31 @@ VULNS = [
 ]
 
 
-def check_ip(ips, gen_lock, print_lock):
-    while True:
-        with gen_lock:
-            try:
-                ip = next(ips)
-            except StopIteration:
-                break
-        for port in [80]:
-            if check_port(ip, port):
-                cu = partial(check_url, ip, port)
-                vulns_exists = map(cu, VULNS)
-                if any(vulns_exists):
-                    with print_lock:
-                        print('[+]', ip, port)
-                # else:
-                #     with print_lock:
-                #         print('[-]', ip, port)
+def check_url(session: Session, ip, port, path):
+    s = 'https' if port == 443 else 'http'
+    url = f'{s}://{ip}/{path}'
+    try:
+        r = session.get(url, allow_redirects=False,
+                        timeout=3, verify=False, stream=True)
+        return r.status_code == 200
+    except:
+        return False
 
 
-def check_ips(count: int, workers: int):
-    ips = generate_ips(count)
-    process(check_ip, ips, workers)
+def check_ip(ip, print_lock):
+    for port in [80]:
+        if check_port(ip, port):
+            session = Session()
+            cu = partial(check_url, session, ip, port)
+            vulns_exists = map(cu, VULNS)
+            if any(vulns_exists):
+                with print_lock:
+                    print('+', ip, port)
+
+
+def check_ips(c: int = 200000, w: int = 1024):
+    process_each(check_ip, generate_ips(c), w)
 
 
 if __name__ == "__main__":
-    check_ips(200000, 1024)
+    Fire(check_ips)

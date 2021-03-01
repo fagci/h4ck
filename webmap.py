@@ -9,12 +9,27 @@ from lib.http import iri_to_uri
 from lib.progress import Progress
 from lib.utils import interruptable, tim
 
+CF = colorama.Fore
+CRED = CF.RED
+CGREEN = CF.GREEN
+CYELLOW = CF.YELLOW
+CGREY = CF.WHITE
+CDGREY = CF.LIGHTBLACK_EX
+CEND = CF.RESET
+
 BANNER = r"""
-__      _____| |__  _ __ ___   __ _ _ __
-\ \ /\ / / _ \ '_ \| '_ ` _ \ / _` | '_ \
- \ V  V /  __/ |_) | | | | | | (_| | |_) |
-  \_/\_/ \___|_.__/|_| |_| |_|\__,_| .__/
-                                   |_|"""
+%s__      _____| |__  _ __ ___   __ _ _ __
+%s\ \ /\ / / _ \ '_ \| '_ ` _ \ / _` | '_ \
+%s \ V  V /  __/ |_) | | | | | | (_| | |_) |
+%s  \_/\_/ \___|_.__/|_| |_| |_|\__,_| .__/
+%s                                   |_|%s""" % (
+    CEND,
+    CEND,
+    CGREY,
+    CGREY,
+    CDGREY,
+    CEND
+)
 
 # file, allow_html
 
@@ -32,13 +47,6 @@ with open('data/web_cms.txt') as f:
 with open('data/web_tech.txt') as f:
     TECH_LIST = [p.rstrip() for p in f]
 
-CF = colorama.Fore
-CRED = CF.RED
-CGREEN = CF.GREEN
-CYELLOW = CF.YELLOW
-CGREY = CF.WHITE
-CDGREY = CF.LIGHTBLACK_EX
-CEND = CF.RESET
 
 session = requests.Session()
 
@@ -121,6 +129,7 @@ def check_vulns(url, _):
         with open(file) as f:
             progress = Progress(sum(1 for _ in f))
             f.seek(0)
+
             ff = (f'{url}/{ln.rstrip()}' for ln in f)
             check = partial(check_path, allow_html)
 
