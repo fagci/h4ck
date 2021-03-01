@@ -1,5 +1,5 @@
+av
 colorama
-ffmpeg-python
 fire
 pyinquirer
 pyyaml

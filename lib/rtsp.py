@@ -72,20 +72,6 @@ def capture_image_cv2(stream_url, img_path):
     return False
 
 
-def capture_image_ffmpeg(stream_url, img_path):
-    import ffmpeg
-
-    stream = ffmpeg.input(stream_url, rtsp_transport='tcp', ss=0)
-    file = stream.output(img_path, vframes=1)
-
-    try:
-        file.run(capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error:
-        return False
-    else:
-        return True
-
-
 def capture_image_av(stream_url, img_path):
     import av
     options = {
@@ -112,12 +98,10 @@ def capture_image_av(stream_url, img_path):
 def capture_image(stream_url, img_path, prefer_ffmpeg=False):
     if prefer_ffmpeg:
         return capture_image_av(stream_url, img_path)
-        # return capture_image_ffmpeg(stream_url, img_path)
     try:
         return capture_image_cv2(stream_url, img_path)
     except ImportError:
         return capture_image_av(stream_url, img_path)
-        # return capture_image_ffmpeg(stream_url, img_path)
 
 # AUTH ====================
 
