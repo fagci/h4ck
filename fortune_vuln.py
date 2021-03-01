@@ -1,4 +1,5 @@
 #!/usr/bin/env -S python -u
+"""Find potentially vulnerable hosts on http 80 over all Internet"""
 from random import randrange
 from socket import socket
 from typing import ContextManager, Optional
