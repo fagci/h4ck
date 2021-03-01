@@ -103,7 +103,8 @@ def capture_image_av(stream_url, img_path):
                     return True
 
     except Exception as e:
-        print('[E]', stream_url, repr(e))
+        # print('[E]', stream_url, repr(e))
+        pass
 
     return False
 

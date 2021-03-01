@@ -24,6 +24,8 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
 
     captured = capture_image(stream_url, img_path, prefer_ffmpeg)
 
+    print('[+]' if captured else '[-]', stream_url)
+
     if captured and capture_callback:
         import subprocess
         subprocess.Popen([capture_callback, stream_url,
