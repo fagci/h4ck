@@ -1,11 +1,14 @@
 #!/usr/bin/env -S python -u
 """Find potentially vulnerable hosts on http 80 over all Internet"""
+import logging
 from random import randrange
 from fire import Fire
 from lib.scan import generate_ips, process_each
-from lib.net import HTTPConnection
+from lib.net import HTTPConnection, logger
 
 __author__ = 'Mikhail Yudin aka fagci'
+
+logger.setLevel(logging.DEBUG)
 
 FAKE_PATH = '/%s' % ''.join(chr(randrange(ord('a'), ord('z')))
                             for _ in range(randrange(3, 16)))

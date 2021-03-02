@@ -8,7 +8,7 @@ import sys
 from fire import Fire
 from tqdm import tqdm
 
-from lib.net import RTSPConnection
+from lib.net import RTSPConnection, logger as net_logger
 
 
 FAKE_PATH = '/i_am_network_researcher'
@@ -77,8 +77,10 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
     if d or de:
         log_level = logging.DEBUG
+
         root_logger = logging.getLogger()
         root_logger.setLevel(log_level)
+        net_logger.setLevel(log_level)
 
         file_handler = logging.FileHandler(LOG_FILE, 'w')
         file_handler.setLevel(log_level)

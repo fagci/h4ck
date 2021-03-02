@@ -5,6 +5,7 @@ from time import sleep, time
 from typing import ContextManager, Optional
 
 logger = logging.getLogger('lib.connection')
+logger.setLevel(logging.CRITICAL)
 
 
 class Packet:
@@ -119,13 +120,16 @@ class Connection(ContextManager):
         if self._c:
             self._c.close()
         is_interrupt = exc_type is KeyboardInterrupt
-        logger.warn('%s %s %s' % (exc_type, exc_msg, trace))
+        if exc_type:
+            logger.warn('%s %s' % (exc_type, exc_msg), trace)
         return not is_interrupt
 
 
 class HTTPConnection(Connection):
     def get(self, url):
         connection = self._c
+        if not connection:
+            return Response()
 
         req = (
             'GET %s HTTP/1.1\r\n'
