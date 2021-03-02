@@ -47,28 +47,27 @@ class Connection(ContextManager):
 
 
 class HTTPConnection(Connection):
-    def get(self, url, timeout=3):
+    def get(self, url):
         code = 999
+
         connection = self._c
 
-        if connection:
-            req = (
-                'GET %s HTTP/1.1\r\n'
-                'Host: %s\r\n'
-                'User-Agent: %s\r\n'
-                '\r\n\r\n'
-            ) % (url, self.host, self.user_agent)
+        req = (
+            'GET %s HTTP/1.1\r\n'
+            'Host: %s\r\n'
+            'User-Agent: %s\r\n'
+            '\r\n\r\n'
+        ) % (url, self.host, self.user_agent)
 
-            try:
-                connection.settimeout(timeout)
-                connection.sendall(req.encode())
+        try:
+            connection.sendall(req.encode())
 
-                res = connection.recv(128).decode()
+            res = connection.recv(128).decode()
 
-                if res.startswith('HTTP/'):
-                    code = int(res.split(None, 2)[1])
-            except OSError:
-                pass
+            if res.startswith('HTTP/'):
+                code = int(res.split(None, 2)[1])
+        except OSError:
+            pass
 
         return code
 

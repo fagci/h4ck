@@ -86,8 +86,20 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
 
 
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
-    log_level = logging.DEBUG if d or de else logging.CRITICAL
-    logging.basicConfig(level=log_level, stream=sys.stderr if de else None)
+    if d or de:
+        log_level = logging.DEBUG
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+
+        file_handler = logging.FileHandler(LOG_FILE, 'w')
+        file_handler.setLevel(log_level)
+        root_logger.addHandler(file_handler)
+
+        if de:
+            stream_handler = logging.StreamHandler(sys.stderr)
+            stream_handler.setLevel(log_level)
+            root_logger.addHandler(stream_handler)
+
     results = []
     hosts_file_path = H or LOCAL_DIR / 'hosts_554.txt'
 
