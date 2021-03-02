@@ -44,19 +44,19 @@ def check_ip(ip, pl, interface):
         vulns = []
 
         for url in VULNS:
-            code = c.get(url)
+            response = c.get(url)
 
             # internal error
-            if code == 999:
+            if response.code == 999:
                 break
 
             # http server error
-            if code >= 500:
+            if response.code >= 500:
                 with pl:
                     print('E', ip, url)
                 break
 
-            if 200 <= code < 300:
+            if 200 <= response.code < 300:
                 vulns.append(url)
                 with pl:
                     print('+', ip, url)

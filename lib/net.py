@@ -7,12 +7,15 @@ from typing import ContextManager, Optional
 logger = logging.getLogger('lib.connection')
 
 
-class Response:
+class Packet:
     protocol: str = ''
-    code: int = 999
-    status_msg: str = ''
     headers: dict[str, str] = {}
     body: str = ''
+
+
+class Response(Packet):
+    code: int = 999
+    status_msg: str = ''
 
     def __init__(self, data: str = ''):
         if not data:
@@ -41,6 +44,42 @@ class Response:
             'Headers: %s\n'
             'Body: %s'
         ) % (self.protocol, self.code, self.status_msg, self.headers, self.body)
+
+
+class Request(Packet):
+    method: str
+    url: str
+
+    PROTO_RTSP_1 = 'RTSP/1.0'
+    PROTO_HTTP_1 = 'HTTP/1.0'
+    PROTO_HTTP_1_1 = 'HTTP/1.1'
+
+    def __init__(self, method: str = 'OPTIONS', url: str = '*', protocol: str = ''):
+        self.method = method
+        self.url = url
+        self.protocol = protocol
+
+    def __repr__(self) -> str:
+        headers_str = '\r\n'.join('%s: %s' % v for v in self.headers.items())
+
+        if headers_str:
+            headers_str += '\r\n'
+
+        body = self.body
+
+        if body:
+            body += '\r\n\r\n'
+
+        return (
+            '%s %s %s\r\n'
+            '%s'
+            '\r\n'
+            '%s'
+        ) % (
+            self.method, self.url, self.protocol,
+            headers_str,
+            body
+        )
 
 
 class Connection(ContextManager):
@@ -76,10 +115,11 @@ class Connection(ContextManager):
 
         return self
 
-    def __exit__(self, exc_type, *_):
+    def __exit__(self, exc_type, exc_msg, trace):
         if self._c:
             self._c.close()
         is_interrupt = exc_type is KeyboardInterrupt
+        logger.warn('%s %s %s' % (exc_type, exc_msg, trace))
         return not is_interrupt
 
 
@@ -125,24 +165,17 @@ class RTSPConnection(Connection):
 
         self._cseqs[connection] = cseq
 
-        headers_str = '\r\n'.join('%s: %s' % v for v in headers.items())
+        headers['CSeq'] = cseq
+        headers['User-Agent'] = 'Mozilla/5.0'
+        headers['Accept'] = 'application/sdp'
 
-        if headers_str:
-            headers_str += '\r\n'
+        request = Request(method, url, Request.PROTO_RTSP_1)
+        request.headers = headers
 
-        request = (
-            '%s %s RTSP/1.0\r\n'
-            'CSeq: %d\r\n'
-            '%s'
-            'User-Agent: Mozilla/5.0\r\n'
-            'Accept: application/sdp\r\n'
-            '\r\n'
-        ) % (method, url, cseq, headers_str)
-
-        logger.info('\n<< %s' % request.rstrip())
+        logger.info('\n<< %s' % str(request).rstrip())
 
         try:
-            connection.sendall(request.encode())
+            connection.sendall(str(request).encode())
             data = connection.recv(1024).decode()
 
             logger.info('\n>> %s' % data.rstrip())
@@ -171,16 +204,16 @@ class RTSPConnection(Connection):
         return Response()
 
     def get(self, path):
-        url = self.get_url(path)
+        url = self.url(path)
         return self.query(url)
 
     def auth(self, path, cred):
-        url = self.get_url(path)
+        url = self.url(path)
         logger.info('Auth %s %s' % (url, cred))
         auth_headers = self._auth_fn(self.M_DESCRIBE, url, *cred.split(':'))
         return self.query(url, auth_headers)
 
-    def get_url(self, path: str = '', cred: str = '') -> str:
+    def url(self, path: str = '', cred: str = '') -> str:
         if cred:
             cred = '%s@' % cred
         return 'rtsp://%s%s:%d%s' % (cred, self.host, self.port, path)
