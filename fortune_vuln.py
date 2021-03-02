@@ -1,10 +1,9 @@
 #!/usr/bin/env -S python -u
 """Find potentially vulnerable hosts on http 80 over all Internet"""
 from random import randrange
-from socket import socket
-from typing import ContextManager, Optional
 from fire import Fire
 from lib.scan import generate_ips, process_each
+from lib.net import HTTPConnection
 
 __author__ = 'Mikhail Yudin aka fagci'
 
@@ -36,76 +35,16 @@ VULNS = [
 ]
 
 
-class Connection(ContextManager):
-    _c: Optional[socket] = None
-    user_agent = 'Mozilla/5.0'
-
-    def __init__(self, host, port, interface: str = ''):
-        self.host = host
-        self.port = port
-        self.interface = interface
-
-    def __enter__(self):
-        from time import time, sleep
-        from socket import create_connection, SOL_SOCKET, SO_BINDTODEVICE
-
-        start = time()
-
-        while time() - start < 3:
-            try:
-                self._c = create_connection((self.host, self.port), 1.5)
-                if self.interface:
-                    self._c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE,
-                                       self.interface.encode())
-                break
-            except KeyboardInterrupt:
-                raise
-            except OSError:
-                sleep(1)
-
-        return self
-
-    def __exit__(self, exc_type, *_):
-        if self._c:
-            self._c.close()
-        return exc_type is not KeyboardInterrupt
-
-    def http_get(self, url, timeout=3):
-        code = 999
-        connection = self._c
-
-        if connection:
-            req = (
-                'GET %s HTTP/1.1\r\n'
-                'Host: %s\r\n'
-                'User-Agent: %s\r\n'
-                '\r\n\r\n'
-            ) % (url, self.host, self.user_agent)
-
-            try:
-                connection.settimeout(timeout)
-                connection.sendall(req.encode())
-
-                res = connection.recv(128).decode()
-
-                if res.startswith('HTTP/'):
-                    code = int(res.split(None, 2)[1])
-            except OSError:
-                pass
-
-        return code
-
-
 def check_ip(ip, pl, interface):
-    with Connection(ip, 80, interface) as c:
+    with HTTPConnection(ip, 80, interface, 1.5, 3) as c:
         # all queries handled by one script
-        if c.http_get(FAKE_PATH) == 200:
+        if c.get(FAKE_PATH) == 200:
             return
 
         vulns = []
 
         for url in VULNS:
-            code = c.http_get(url)
+            code = c.get(url)
 
             # internal error
             if code == 999:
