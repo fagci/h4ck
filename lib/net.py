@@ -7,11 +7,47 @@ from typing import ContextManager, Optional
 logger = logging.getLogger('lib.connection')
 
 
+class Response:
+    protocol: str = ''
+    code: int = 999
+    status_msg: str = ''
+    headers: dict[str, str] = {}
+    body: str = ''
+
+    def __init__(self, data: str = ''):
+        if not data:
+            return
+
+        data_lines = iter(data.splitlines())
+
+        self.protocol, code, self.status_msg = next(data_lines).split(None, 2)
+        self.code = int(code)
+
+        for ln in data_lines:
+            if ln:
+                if ':' in ln:
+                    k, v = ln.split(':', 1)
+                    self.headers[k.strip().lower()] = v.strip()
+                continue
+            break
+
+        self.body = '\n'.join(data_lines)
+
+    def __repr__(self):
+        return (
+            'Proto: %s\n'
+            'Code: %d\n'
+            'Status msg: %s\n'
+            'Headers: %s\n'
+            'Body: %s'
+        ) % (self.protocol, self.code, self.status_msg, self.headers, self.body)
+
+
 class Connection(ContextManager):
     _c: Optional[socket] = None
     user_agent = 'Mozilla/5.0'
 
-    def __init__(self, host, port, interface: str = '', timeout: float = 2, query_timeout: float = 5):
+    def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5):
         self.host = host
         self.port = port
         self.interface = interface
@@ -43,13 +79,12 @@ class Connection(ContextManager):
     def __exit__(self, exc_type, *_):
         if self._c:
             self._c.close()
-        return exc_type is not KeyboardInterrupt
+        is_interrupt = exc_type is KeyboardInterrupt
+        return not is_interrupt
 
 
 class HTTPConnection(Connection):
     def get(self, url):
-        code = 999
-
         connection = self._c
 
         req = (
@@ -61,15 +96,14 @@ class HTTPConnection(Connection):
 
         try:
             connection.sendall(req.encode())
-
-            res = connection.recv(128).decode()
-
-            if res.startswith('HTTP/'):
-                code = int(res.split(None, 2)[1])
+            # TODO: get overall response
+            data = connection.recv(1024).decode()
+            if data.startswith('HTTP/'):
+                return Response(data)
         except OSError:
             pass
 
-        return code
+        return Response()
 
 
 class RTSPConnection(Connection):
@@ -78,7 +112,7 @@ class RTSPConnection(Connection):
 
     _cseqs = dict()
 
-    def query(self, url: str = '*', headers: dict = {}) -> tuple[int, dict]:
+    def query(self, url: str = '*', headers: dict = {}) -> Response:
         method = self.M_OPTIONS if url == '*' else self.M_DESCRIBE
         connection = self._c
 
@@ -107,32 +141,19 @@ class RTSPConnection(Connection):
 
         logger.info('\n<< %s' % request.rstrip())
 
-        headers = {}
         try:
             connection.sendall(request.encode())
-            response = connection.recv(1024).decode()
+            data = connection.recv(1024).decode()
 
-            logger.info('\n>> %s' % response.rstrip())
+            logger.info('\n>> %s' % data.rstrip())
 
-            if response.startswith('RTSP/'):
-                _, code, _ = response.split(None, 2)
-                code = int(code)
+            if data.startswith('RTSP/'):
+                response = Response(data)
 
-                for ln in response.splitlines()[2:]:
-                    if not ln:
-                        break
-                    if ':' in ln:
-                        k, v = ln.split(':', 1)
-                        headers[k.lower()] = v.strip()
+                if response.code == 401:
+                    self._auth_fn = self.get_auth_header_fn(response.headers)
 
-                # cam not uses RFC, fix it
-                if code == 200 and 'WWW-Authenticate' in response:
-                    code = 401
-
-                if code == 401:
-                    self._auth_fn = self.get_auth_header_fn(headers)
-
-                return code, headers
+                return response
 
         except KeyboardInterrupt:
             raise
@@ -147,7 +168,7 @@ class RTSPConnection(Connection):
         except Exception as e:
             logger.error(repr(e))
 
-        return 500, headers
+        return Response()
 
     def get(self, path):
         url = self.get_url(path)
@@ -155,7 +176,7 @@ class RTSPConnection(Connection):
 
     def auth(self, path, cred):
         url = self.get_url(path)
-        logger.info('Auth', url, cred)
+        logger.info('Auth %s %s' % (url, cred))
         auth_headers = self._auth_fn(self.M_DESCRIBE, url, *cred.split(':'))
         return self.query(url, auth_headers)
 
