@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import sys
 
+from colorama import init as colorama_init
+from colorama import Fore
 from fire import Fire
 from tqdm import tqdm
 
@@ -77,7 +79,12 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
 
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
     if d or de:
+        colorama_init()
         log_level = logging.DEBUG
+        formatter = logging.Formatter(
+            '[%(name)s %(levelname)s]\n%(message)s\n')
+        formatter_c = logging.Formatter(
+            Fore.YELLOW + '[%(name)s %(levelname)s]'+Fore.RESET+'\n%(message)s\n')
 
         root_logger = logging.getLogger()
         root_logger.setLevel(log_level)
@@ -85,11 +92,13 @@ def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = Fa
 
         file_handler = logging.FileHandler(LOG_FILE, 'w')
         file_handler.setLevel(log_level)
+        file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
 
         if de:
             stream_handler = logging.StreamHandler(sys.stderr)
             stream_handler.setLevel(log_level)
+            stream_handler.setFormatter(formatter_c)
             root_logger.addHandler(stream_handler)
 
     results = []

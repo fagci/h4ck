@@ -143,12 +143,12 @@ class Connection:
 
         return self
 
-    def __exit__(self, exc_type, exc_msg, trace):
+    def __exit__(self, _type, value, _trace):
         if self._c:
             self._c.close()
-        is_interrupt = exc_type is KeyboardInterrupt
-        if exc_type:
-            logger.warn('%s %s' % (exc_type, exc_msg), trace)
+        is_interrupt = isinstance(value, KeyboardInterrupt)
+        if value:
+            logger.warn('%s %s' % (_type, value))
         return not is_interrupt
 
 
