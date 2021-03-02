@@ -37,6 +37,26 @@ class Response(Packet):
 
         self.body = '\n'.join(data_lines)
 
+    @property
+    def error(self):
+        return self.code >= 500
+
+    @property
+    def not_found(self):
+        return self.code == 404
+
+    @property
+    def ok(self):
+        return self.code == 200
+
+    @property
+    def found(self):
+        return 200 <= self.code < 300
+
+    @property
+    def auth_needed(self):
+        return self.code == 401
+
     def __repr__(self):
         return (
             'Proto: %s\n'
