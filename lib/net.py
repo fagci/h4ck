@@ -2,23 +2,29 @@ import logging
 from socket import SOL_SOCKET, SO_BINDTODEVICE, create_connection, socket
 from socket import timeout as SocketTimeout
 from time import sleep, time
-from typing import ContextManager, Optional
+from typing import Optional
 
 logger = logging.getLogger('lib.connection')
 logger.setLevel(logging.CRITICAL)
 
 
 class Packet:
+    """Base class for communication"""
     protocol: str = ''
     headers: dict[str, str] = {}
     body: str = ''
 
 
 class Response(Packet):
+    """Response packet"""
     code: int = 999
     status_msg: str = ''
 
     def __init__(self, data: str = ''):
+        """Create response, parse data string if passed.
+
+        :param str data: response string from server"""
+
         if not data:
             return
 
@@ -68,6 +74,7 @@ class Response(Packet):
 
 
 class Request(Packet):
+    """Used to build request string"""
     method: str
     url: str
 
@@ -103,7 +110,7 @@ class Request(Packet):
         )
 
 
-class Connection(ContextManager):
+class Connection:
     _c: Optional[socket] = None
     user_agent = 'Mozilla/5.0'
 
@@ -212,17 +219,13 @@ class RTSPConnection(Connection):
 
                 return response
 
-        except KeyboardInterrupt:
-            raise
         except BrokenPipeError as e:
             logger.error(repr(e))
         except SocketTimeout as e:
-            logger.error(repr(e))
+            logger.warning(repr(e))
         except ConnectionResetError as e:
             logger.error(repr(e))
         except UnicodeDecodeError as e:
-            logger.error(repr(e))
-        except Exception as e:
             logger.error(repr(e))
 
         return Response()
@@ -246,6 +249,7 @@ class RTSPConnection(Connection):
     def get_auth_header_fn(headers):
         auth_header = headers['www-authenticate']
         method, params = auth_header.split(None, 1)
+
         if method == 'Basic':
             return RTSPConnection.get_basic_auth_header
         elif method == 'Digest':
@@ -263,9 +267,9 @@ class RTSPConnection(Connection):
     def get_digest_auth_header(parts, rtsp_method, url, username, password):
         realm = parts.get('realm')
         nonce = parts.get('nonce')
+        algo = parts.get('algorithm', 'MD5').upper()
 
-        hash_digest = RTSPConnection._get_hasher(
-            parts.get('algorithm', 'MD5').upper())
+        hash_digest = RTSPConnection._get_hasher(algo)
 
         A1 = '%s:%s:%s' % (username, realm, password)
         A2 = '%s:%s' % (rtsp_method, url)

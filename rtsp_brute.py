@@ -38,7 +38,7 @@ def brute(connection: RTSPConnection, path: str):
             return connection.url(path, cred)
 
 
-def attack(connection: RTSPConnection, single_path: bool = True):
+def fuzz(connection: RTSPConnection, single_path: bool = True):
     results = []
 
     for path in paths:
@@ -70,7 +70,7 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
 
     with RTSPConnection(host, port, interface) as connection:
         if connection.query().ok:
-            return attack(connection, single_path)
+            return fuzz(connection, single_path)
 
         return []
 
