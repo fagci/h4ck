@@ -48,6 +48,7 @@ class Connection(ContextManager):
     def __enter__(self):
         from time import time, sleep
         from socket import create_connection, SOL_SOCKET, SO_BINDTODEVICE
+
         start = time()
 
         while time() - start < 3:
@@ -64,9 +65,10 @@ class Connection(ContextManager):
 
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, exc_type, *_):
         if self._c:
-            return self._c.close()
+            self._c.close()
+        return exc_type is not KeyboardInterrupt
 
     def http_get(self, url, timeout=3):
         code = 999
@@ -95,41 +97,36 @@ class Connection(ContextManager):
 
 
 def check_ip(ip, pl, interface):
-    try:
-        with Connection(ip, 80, interface) as c:
-            # all queries handled by one script
-            if c.http_get(FAKE_PATH) == 200:
-                return
+    with Connection(ip, 80, interface) as c:
+        # all queries handled by one script
+        if c.http_get(FAKE_PATH) == 200:
+            return
 
-            vulns = []
+        vulns = []
 
-            for url in VULNS:
-                code = c.http_get(url)
+        for url in VULNS:
+            code = c.http_get(url)
 
-                # internal error
-                if code == 999:
-                    break
+            # internal error
+            if code == 999:
+                break
 
-                # http server error
-                if code >= 500:
-                    with pl:
-                        print('E', ip, url)
-                    break
-
-                if 200 <= code < 300:
-                    vulns.append(url)
-                    with pl:
-                        print('+', ip, url)
-
-            if vulns:
-                t = 'fake' if len(VULNS) == len(vulns) else 'real'
+            # http server error
+            if code >= 500:
                 with pl:
-                    print('+', t, ip, vulns)
-                return
+                    print('E', ip, url)
+                break
 
-    except Exception as e:
-        print(repr(e))
-        pass
+            if 200 <= code < 300:
+                vulns.append(url)
+                with pl:
+                    print('+', ip, url)
+
+        if vulns:
+            t = 'fake' if len(VULNS) == len(vulns) else 'real'
+            with pl:
+                print('+', t, ip, vulns)
+            return
 
 
 def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
@@ -137,4 +134,7 @@ def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
 
 
 if __name__ == "__main__":
-    Fire(check_ips)
+    try:
+        Fire(check_ips)
+    except KeyboardInterrupt:
+        print('Interrupted by user')

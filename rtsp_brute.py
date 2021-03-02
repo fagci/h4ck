@@ -131,13 +131,13 @@ def connect(host: str, port: int, interface: str = '') -> SocketIO:
         except KeyboardInterrupt:
             raise
         except timeout as e:
-            logging.error(repr(e))
+            logging.warning(repr(e))
             return
         except OSError as e:
             logging.error(repr(e))
             sleep(1)
         except Exception as e:
-            logging.error(repr(e))
+            logging.critical(repr(e))
             return
 
 
