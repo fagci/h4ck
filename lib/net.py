@@ -202,14 +202,15 @@ class RTSPConnection(Connection):
 
         request = Request(method, url, Request.PROTO_RTSP_1)
         request.headers = headers
+        request_str = str(request)
 
-        logger.info('\n<< %s' % str(request).rstrip())
+        logger.info('<< %s' % request_str.rstrip())
 
         try:
-            connection.sendall(str(request).encode())
+            connection.sendall(request_str.encode())
             data = connection.recv(1024).decode()
 
-            logger.info('\n>> %s' % data.rstrip())
+            logger.info('>> %s' % data.rstrip())
 
             if data.startswith('RTSP/'):
                 response = Response(data)

@@ -60,6 +60,8 @@ def fuzz(connection: RTSPConnection, single_path: bool = True):
 
             if result:
                 results.append(result)
+            else:
+                break
 
         if single_path and results:
             break
@@ -74,7 +76,7 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
         if connection.query().ok:
             return fuzz(connection, single_path)
 
-        return []
+    return []
 
 
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
@@ -128,9 +130,6 @@ def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = Fa
                     host, port, *_ = futures[future]
                     res = future.result()
                     progress.update()
-                    if res is None:
-                        print('Result for host is None, giving up')
-                        return
                     results += res
 
     for result in results:

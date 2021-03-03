@@ -1,16 +1,16 @@
 #!/usr/bin/env -S python -u
 from pathlib import Path
-from socket import SOL_SOCKET, SO_BINDTODEVICE, create_connection, timeout
+from socket import IPPROTO_TCP, SOL_SOCKET, SO_BINDTODEVICE, SO_LINGER, TCP_NODELAY, create_connection, timeout
 from time import time, sleep
 
 from fire import Fire
 
-from lib.scan import generate_ips, process_each
+from lib.scan import generate_ips, process_each, LINGER
 
 counter = 0
 max_count = 1024
 
-REQ = b'OPTIONS * RTSP/1.0\r\nCSeq: 1\r\n\r\n'
+REQ = b'OPTIONS * RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: Mozilla/5.0\r\nAccept: application/sdp\r\n\r\n'
 
 
 def check(ip, pl, out, p, t, i):
@@ -33,8 +33,10 @@ def check(ip, pl, out, p, t, i):
             dt = time() - tim
             if i:
                 c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, i.encode())
+            c.setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
+            c.setsockopt(SOL_SOCKET, SO_LINGER, LINGER)
             c.sendall(REQ)
-            response = c.recv(1024).decode()
+            response = c.recv(128).decode()
             if response.startswith('RTSP/'):
                 _, code, _ = response.split(None, 2)
             break
