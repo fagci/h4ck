@@ -80,11 +80,14 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
 def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
     if d or de:
         colorama_init()
+        FY = str(Fore.YELLOW)
+        FR = str(Fore.RESET)
+
         log_level = logging.DEBUG
-        formatter = logging.Formatter(
-            '[%(name)s %(levelname)s]\n%(message)s\n')
-        formatter_c = logging.Formatter(
-            Fore.YELLOW + '[%(name)s %(levelname)s]'+Fore.RESET+'\n%(message)s\n')
+        log_format_base = '[%(name)s %(levelname)s]\n%(message)s\n'
+        log_format_c = FY + '[%(name)s %(levelname)s]' + FR + '\n%(message)s\n'
+        formatter = logging.Formatter(log_format_base)
+        formatter_c = logging.Formatter(log_format_c)
 
         root_logger = logging.getLogger()
         root_logger.setLevel(log_level)
