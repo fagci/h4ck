@@ -18,16 +18,16 @@ def capture_image_av(stream_url, img_path):
         'stimeout': '60000000',
     }
     try:
-        with av.open(stream_url, options=options, timeout=20) as c:
+        with av.open(stream_url, options=options, timeout=30) as c:
             vs = c.streams.video[0]
-            if vs.profile is not None and vs.codec_context.format and vs.start_time is not None:
-                vs.thread_type = "AUTO"
-                for frame in c.decode(video=0):
-                    frame.to_image().save(img_path)
-                    return True
+            vs.thread_type = "AUTO"
+            vs.codec_context.skip_frame = 'NONKEY'
+            for frame in c.decode(vs):
+                frame.to_image().save(img_path, quality=85)
+                return True
 
     except Exception as e:
-        # print('[E]', stream_url, repr(e))
+        print('[E]', stream_url, repr(e))
         pass
 
     return False
