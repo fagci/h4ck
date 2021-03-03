@@ -10,20 +10,25 @@ logger.setLevel(logging.CRITICAL)
 
 class Packet:
     """Base class for communication"""
-    protocol: str = ''
-    headers: dict[str, str] = {}
-    body: str = ''
+    __slots__ = ('protocol', 'headers', 'body')
+
+    def __init__(self):
+        self.protocol: str = ''
+        self.headers: dict[str, str] = {}
+        self.body: str = ''
 
 
 class Response(Packet):
     """Response packet"""
-    code: int = 999
-    status_msg: str = ''
+    __slots__ = ('code', 'status_msg')
 
     def __init__(self, data: str = ''):
         """Create response, parse data string if passed.
 
         :param str data: response string from server"""
+        super().__init__()
+        self.code: int = 999
+        self.status_msg: str = ''
 
         if not data:
             return
@@ -75,14 +80,14 @@ class Response(Packet):
 
 class Request(Packet):
     """Used to build request string"""
-    method: str
-    url: str
+    __slots__ = ('method', 'url')
 
     PROTO_RTSP_1 = 'RTSP/1.0'
     PROTO_HTTP_1 = 'HTTP/1.0'
     PROTO_HTTP_1_1 = 'HTTP/1.1'
 
     def __init__(self, method: str = 'OPTIONS', url: str = '*', protocol: str = ''):
+        super().__init__()
         self.method = method
         self.url = url
         self.protocol = protocol
@@ -111,15 +116,25 @@ class Request(Packet):
 
 
 class Connection:
-    _c: Optional[socket] = None
-    user_agent = 'Mozilla/5.0'
+    __slots__ = ('_host', '_port', '_iface', '_connection_timeout',
+                 '_query_timeout', '_user_agent')
 
-    def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5):
-        self.host = host
-        self.port = port
-        self.interface = interface
+    def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
+        self._host = host
+        self._port = port
+        self._iface = interface
         self._connection_timeout = timeout
         self._query_timeout = query_timeout
+        self._c: Optional[socket] = None
+        self._user_agent = ua
+
+    @property
+    def host(self):
+        return self._host
+
+    @property
+    def port(self):
+        return self._port
 
     def __enter__(self):
 
@@ -130,9 +145,9 @@ class Connection:
             try:
                 self._c = create_connection(address, self._connection_timeout)
                 self._c.settimeout(self._query_timeout)
-                if self.interface:
-                    self._c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE,
-                                       self.interface.encode())
+                if self._iface:
+                    _if = self._iface.encode()
+                    self._c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, _if)
                 break
             except KeyboardInterrupt:
                 raise
@@ -163,7 +178,7 @@ class HTTPConnection(Connection):
             'Host: %s\r\n'
             'User-Agent: %s\r\n'
             '\r\n\r\n'
-        ) % (url, self.host, self.user_agent)
+        ) % (url, self.host, self._user_agent)
 
         try:
             connection.sendall(req.encode())
@@ -197,7 +212,7 @@ class RTSPConnection(Connection):
         self._cseqs[connection] = cseq
 
         headers['CSeq'] = cseq
-        headers['User-Agent'] = 'Mozilla/5.0'
+        headers['User-Agent'] = self._user_agent
         headers['Accept'] = 'application/sdp'
 
         request = Request(method, url, Request.PROTO_RTSP_1)
