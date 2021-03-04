@@ -1,5 +1,5 @@
-/1
 /0/1:1/main
+/1
 /user=admin&password=&channel=1&stream=0.sdp?
 /live
 /h264/ch1/sub/av_stream

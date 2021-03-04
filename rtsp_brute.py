@@ -26,7 +26,7 @@ CREDS_FILE = DATA_DIR / 'rtsp_creds_my.txt'
 
 
 paths: list
-creds = [ln.rstrip() for ln in open(CREDS_FILE)]
+creds: list
 
 
 def brute(connection: RTSPConnection, path: str):
@@ -79,9 +79,11 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
     return []
 
 
-def main(H: str = '', P: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
+def main(H: str = '', P: str = '', C: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
     global paths
+    global creds
     paths = [FAKE_PATH] + [ln.rstrip() for ln in open(P or PATHS_FILE)]
+    creds = [ln.rstrip() for ln in open(C or CREDS_FILE)]
     if d or de:
         colorama_init()
         FY = str(Fore.YELLOW)
