@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from socket import IPPROTO_TCP, SOL_SOCKET, SO_BINDTODEVICE, SO_LINGER, TCP_NODELAY, create_connection, timeout
-from time import time, sleep
+from time import time
 
 from fire import Fire
 
-from lib.scan import generate_ips, process_each, LINGER
+from lib.scan import generate_ips, process_each
+from lib.net import RTSPConnection
 
 counter = 0
 max_count = 1024
@@ -20,56 +20,22 @@ def check(ip, pl, out, p, t, i):
         if counter >= max_count:
             raise StopIteration()
 
-    start = time()
-    code = 500
-    response = ''
-    c = None
-    dt = None
+    tt = time()
+    with RTSPConnection(ip, p, i, t) as connection:
+        dt = time() - tt
+        response = connection.query()
 
-    while time() - start < 3:
-        try:
-            tim = time()
-            c = create_connection((ip, int(p)), t)
-            dt = time() - tim
-            if i:
-                c.setsockopt(SOL_SOCKET, SO_BINDTODEVICE, i.encode())
-            c.setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
-            c.setsockopt(SOL_SOCKET, SO_LINGER, LINGER)
-            c.sendall(REQ)
-            response = c.recv(128).decode()
-            if response.startswith('RTSP/'):
-                _, code, _ = response.split(None, 2)
-            break
-        except KeyboardInterrupt:
-            raise
-        except timeout:
-            break
-        except OSError:
-            sleep(1)
-        except:
-            break
+        if not response.found:
+            return
 
-    try:
-        c.close()
-    except:
-        pass
+        server = response.headers.get('server', '-')
 
-    is_ok = 200 <= int(code) < 300
-
-    if not is_ok:
-        return
-
-    server = ''
-    for h in response.splitlines()[1:]:
-        if h.startswith('Server'):
-            _, server = h.split(None, 1)
-            server = server.strip()
-            break
-    with pl:
-        if counter < max_count:  # precision ensurance
-            counter += 1
-            print('{:<4} {:<15} ({:>4} ms) {}'.format(counter, ip, int(dt*1000), server[:20]))
-            out.write('%s\n' % ip)
+        with pl:
+            if counter < max_count:  # precision ensurance
+                counter += 1
+                print('{:<4} {:<15} ({:>4} ms) {}'.format(
+                    counter, ip, int(dt*1000), server[:20]))
+                out.write('%s\n' % ip)
 
 
 def check_ips(p: int = 554, c: int = 1024, l: int = 2000000, w: int = 1500, t=1.5, f=False, F=False, i=None):
@@ -92,7 +58,7 @@ def check_ips(p: int = 554, c: int = 1024, l: int = 2000000, w: int = 1500, t=1.
     if F:
         f = True
     elif f:
-        f = input('Delete hosts_%d.txt? y/n: '%p).lower() == 'y'
+        f = input('Delete hosts_%d.txt? y/n: ' % p).lower() == 'y'
 
     ips = generate_ips(l)
 
