@@ -1,9 +1,0 @@
-new_session:
-  type: input
-  name: session_name
-  message: New session name
-
-restore_last_session:
-  type: confirm
-  name: restore
-  message: Restore last session?
