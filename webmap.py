@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Scan web application for CMS, used techs, vulns"""
 
 import colorama

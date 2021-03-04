@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import socks as so
 import proxyscrape
 # Create a collector for http resources

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from fire import Fire
 
 from lib.utils import geoip_str_online

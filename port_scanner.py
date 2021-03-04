@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from queue import Queue
 import socket
 from threading import Thread

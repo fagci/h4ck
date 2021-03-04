@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from collections import defaultdict
 from fire import Fire
 from lib.scan import process, generate_ips, check_port, check_url

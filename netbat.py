@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Port scanner with multiple hosts and ports support"""
 import ipaddress
 import os
