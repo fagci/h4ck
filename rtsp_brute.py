@@ -25,7 +25,7 @@ PATHS_FILE = DATA_DIR / 'rtsp_paths1.txt'
 CREDS_FILE = DATA_DIR / 'rtsp_creds_my.txt'
 
 
-paths = [FAKE_PATH] + [ln.rstrip() for ln in open(PATHS_FILE)]
+paths: list
 creds = [ln.rstrip() for ln in open(CREDS_FILE)]
 
 
@@ -79,7 +79,9 @@ def process_target(target_params: tuple[str, int, bool, str]) -> list[str]:
     return []
 
 
-def main(H: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
+def main(H: str = '', P: str = '', w: int = None, sp: bool = False, i: str = '', d: bool = False, de: bool = False):
+    global paths
+    paths = [FAKE_PATH] + [ln.rstrip() for ln in open(P or PATHS_FILE)]
     if d or de:
         colorama_init()
         FY = str(Fore.YELLOW)
