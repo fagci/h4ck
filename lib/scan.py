@@ -60,32 +60,36 @@ def generate_ips(count: int, bypass_local=True):
 
 
 def check_port(ip, port, timeout=1, double_check=False, iface: str = None):
+    start = time()
     target = (ip, port)
-    while True:
+
+    while time() - start < 2:
         try:
             with so.socket() as s:
                 # send only RST on close
                 s.setsockopt(so.SOL_SOCKET, so.SO_LINGER, LINGER)
-                s.setsockopt(so.IPPROTO_TCP, so.TCP_NODELAY, 1)
                 if iface:
                     s.setsockopt(
                         so.SOL_SOCKET, so.SO_BINDTODEVICE, iface.encode())
                 s.settimeout(timeout)
+
                 t = time()
                 res = s.connect_ex(target) == 0
 
                 if double_check and not res:
                     double_check = False
                     continue
+
                 elapsed = time() - t
                 return (res, elapsed) if res else None
         except KeyboardInterrupt:
             raise
-        except OSError as e:
-            if e.errno == 24:
-                sleep(0.25)
-                continue
-            raise
+        except so.timeout:
+            break
+        except OSError:
+            sleep(0.5)
+        except:
+            break
 
 
 def check_url(ip, port, path):

@@ -41,7 +41,7 @@ VULNS = [
 def check_ip(ip, pl, interface):
     with HTTPConnection(ip, 80, interface, 1.5, 3) as c:
         # all queries handled by one script
-        if c.get(FAKE_PATH) == 200:
+        if c.get(FAKE_PATH).ok:
             return
 
         vulns = []
@@ -49,17 +49,10 @@ def check_ip(ip, pl, interface):
         for url in VULNS:
             response = c.get(url)
 
-            # internal error
-            if response.code == 999:
+            if response.error:
                 break
 
-            # http server error
-            if response.code >= 500:
-                with pl:
-                    print('E', ip, url)
-                break
-
-            if 200 <= response.code < 300:
+            if response.found:
                 vulns.append(url)
                 with pl:
                     print('+', ip, url)

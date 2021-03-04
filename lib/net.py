@@ -49,6 +49,10 @@ class Response(Packet):
         self.body = '\n'.join(data_lines)
 
     @property
+    def internal_error(self):
+        return self.code == 999
+
+    @property
     def error(self):
         return self.code >= 500
 
