@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-from base64 import decodebytes
+#!/usr/bin/env python3
+from base64 import b64decode
 import os
 import subprocess
 import tempfile
@@ -40,11 +40,11 @@ def main(country='', r=False):
     servers = sorted(servers, key=lambda s: s[4], reverse=True)[:20]
 
     for i, s in enumerate(servers):
-        print(
-            f'[{i}] Score: {s[2]}, ping: {s[3]}, speed {sizeof_fmt(int(s[4]),"B/s")}, country: {s[6]}')
-    i = input(f'Choose server [0-{len(servers)-1}]: ')
+        print('[%d] Score: %s, ping %s, speed %s, country: %s' % (i, s[2], s[3], sizeof_fmt(int(s[4]),"B/s"),s[6]))
 
-    cfg = decodebytes(servers[0][-1].encode()).decode()
+    i = input('Choose server [0-%d]: ' % (len(servers)-1))
+
+    cfg = b64decode(servers[0][-1].encode()).decode()
 
     _, fname = tempfile.mkstemp()
 

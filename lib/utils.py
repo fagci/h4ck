@@ -75,11 +75,11 @@ def sizeof_fmt(num, suffix='B'):
 
 def geoip_str_online(ip):
     import requests
-    url = f'https://ipinfo.io/{ip}/json'
+    url = 'https://ipinfo.io/%s/json' % ip
     try:
         d = requests.get(url).json()
         if d:
-            return f'{d.get("country")}, {d.get("region")}, {d.get("city")}'
+            return '%s, %s, %s' % (d.get("country"), d.get("region"), d.get("city"))
     except:
         pass
     return ''

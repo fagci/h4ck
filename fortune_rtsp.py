@@ -1,4 +1,4 @@
-#!/usr/bin/env -S python -u
+#!/usr/bin/env python3
 from pathlib import Path
 from socket import IPPROTO_TCP, SOL_SOCKET, SO_BINDTODEVICE, SO_LINGER, TCP_NODELAY, create_connection, timeout
 from time import time, sleep
@@ -68,12 +68,11 @@ def check(ip, pl, out, p, t, i):
     with pl:
         if counter < max_count:  # precision ensurance
             counter += 1
-            print(
-                f'{counter:<4} {ip:<15} ({int(dt*1000):>4} ms) {server[:20]}')
-            out.write(f'{ip}\n')
+            print('{:<4} {:<15} ({:>4} ms) {}'.format(counter, ip, int(dt*1000), server[:20]))
+            out.write('%s\n' % ip)
 
 
-def check_ips(p: int = 554, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f=False, F=False, i=None):
+def check_ips(p: int = 554, c: int = 1024, l: int = 2000000, w: int = 1500, t=1.5, f=False, F=False, i=None):
     """Scan random ips for port
 
     :param int p: port to check
@@ -88,12 +87,12 @@ def check_ips(p: int = 554, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=
 
     max_count = c
 
-    results_file = Path(f'./local/rtsp_{p}.txt')
+    results_file = Path('./local/rtsp_%d.txt' % p)
 
     if F:
         f = True
     elif f:
-        f = input(f'Delete hosts_{p}.txt? y/n: ').lower() == 'y'
+        f = input('Delete hosts_%d.txt? y/n: '%p).lower() == 'y'
 
     ips = generate_ips(l)
 
