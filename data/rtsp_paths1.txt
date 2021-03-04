@@ -1,7 +1,14 @@
+/1
 /0/1:1/main
+/user=admin&password=&channel=1&stream=0.sdp?
+/live
+/h264/ch1/sub/av_stream
+/stream1
+/axis-media/media.amp
+/live/h264
+/stream.sdp
 /0/usrnm:pwd/main
 /0/video1
-/1
 /1.AMP
 /1/h264major
 /1/stream1
@@ -38,7 +45,6 @@
 /av2
 /avc
 /avn=2
-/axis-media/media.amp
 /axis-media/media.amp?camera=1
 /axis-media/media.amp?videocodec=h264
 /cam
@@ -80,7 +86,6 @@
 /gnz_media/main
 /h264
 /h264.sdp
-/h264/ch1/sub/av_stream
 /h264/media.amp
 /h264Preview_01_main
 /h264Preview_01_sub
@@ -95,13 +100,11 @@
 /ipcam.sdp
 /ipcam_h264.sdp
 /ipcam_mjpeg.sdp
-/live
 /live.sdp
 /live/av0
 /live/ch0
 /live/ch00_0
 /live/ch01_0
-/live/h264
 /live/main
 /live/main0
 /live/mpeg4
@@ -149,11 +152,9 @@
 /rtsph2641080p
 /snap.jpg
 /stream
-/stream.sdp
 /stream/0
 /stream/1
 /stream/live.sdp
-/stream1
 /streaming/channels/0
 /streaming/channels/1
 /streaming/channels/101
@@ -166,7 +167,6 @@
 /udp/unicast/aiphone_H264
 /udpstream
 /user.pin.mp2
-/user=admin&password=&channel=1&stream=0.sdp?
 /user=admin&password=&channel=1&stream=0.sdp?real_stream
 /user=admin_password=?????_channel=1_stream=0.sdp?real_stream
 /user=admin_password=R5XFY888_channel=1_stream=0.sdp?real_stream
