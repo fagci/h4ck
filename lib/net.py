@@ -132,6 +132,12 @@ class Connection:
         self._c: Optional[socket] = None
         self._user_agent = ua
 
+    def get(self, path):
+        raise NotImplementedError
+
+    def auth(self, path, cred):
+        raise NotImplementedError
+
     @property
     def host(self):
         return self._host
