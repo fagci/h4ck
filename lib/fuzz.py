@@ -2,24 +2,23 @@ from lib.net import Connection, Response
 
 
 class DictLoader:
-    __slots__ = (
-        '_dictionary',
-        '_items',
-        '_file_handler',
-    )
+    __slots__ = ('_dictionary', '_file_handler', '_items')
 
     def __init__(self, dictionary):
         self._dictionary = dictionary
 
     def __enter__(self):
-        if isinstance(self._dictionary, str):
-            if '\n' in self._dictionary:
-                self._items = iter(self._dictionary.splitlines())
+        d = self._dictionary
+        if isinstance(d, str):
+            if '\n' in d:
+                items = d.splitlines()
             else:
-                self._file_handler = open(self._dictionary)
-                self._items = (ln.rstrip() for ln in self._file_handler)
+                self._file_handler = open(d)
+                items = (ln.rstrip() for ln in self._file_handler)
         else:
-            self._items = iter(self._dictionary)
+            items = d
+
+        self._items = iter(items)
 
         return self
 
@@ -44,7 +43,6 @@ class Bruter(DictLoader):
         super().__init__(dictionary)
 
     def __iter__(self):
-        response = Response()
         for cred in self._items:
             response = self._connection.auth(self._path, cred)
             if response.error:
@@ -68,6 +66,12 @@ class Fuzzer(DictLoader):
         return self._connection.get(path)
 
     def __iter__(self):
+        fake_path = '/fake_path'
+        response = self.check(fake_path)
+        if response.found:
+            yield '/', False
+            return
+
         for path in self._items:
             response = self.check(path)
 
@@ -76,5 +80,6 @@ class Fuzzer(DictLoader):
 
             if response.found:
                 yield path, False
+
             if response.auth_needed:
                 yield path, True
