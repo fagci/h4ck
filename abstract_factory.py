@@ -13,7 +13,12 @@ class Node:
     @staticmethod
     def connect(source, sink):
         sink.sink = source.source
+        print(type(source), '>', type(sink))
         return sink
+
+    def init(self):
+        """Overload to realise logic"""
+        self.source = self.sink
 
     def __or__(self, sink: 'Node'):
         return self.connect(self, sink)
@@ -22,7 +27,8 @@ class Node:
         return self.connect(source, self)
 
     def __iter__(self):
-        yield from self.source or self.sink
+        self.init()
+        yield from self.source
 
 
 class HostGen(Node):
@@ -36,9 +42,11 @@ class Fuzzer(Node):
 
 def main():
     hosts = HostGen()
+    d1 = Node()
+    d2 = Node()
     fuzzer = Fuzzer()
 
-    results = hosts | fuzzer
+    results = hosts | d1 | d2 | fuzzer
 
     for result in results:
         print(result)
