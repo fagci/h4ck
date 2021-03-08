@@ -8,10 +8,9 @@ from lib.scan import check_port, generate_ips, process_each
 __author__ = 'Mikhail Yudin aka fagci'
 
 counter = 0
-max_count = 1024
 
 
-def check(ip, pl, out, *scanopts):
+def check(ip, pl, out, max_count, *scanopts):
     global counter
 
     with pl:
@@ -42,9 +41,6 @@ def check_ips(p: int, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f
     :param bool F: force overwrite result file
     :param bool d: double check each host
     :param bool i: network interface to use"""
-    global max_count
-
-    max_count = c
 
     results_file = Path(f'./local/hosts_{p}.txt')
 
@@ -57,7 +53,7 @@ def check_ips(p: int, c: int = 1024, l: int = 2_000_000, w: int = 1500, t=1.5, f
 
     try:
         with open(results_file, 'w' if f else 'a') as out:
-            process_each(check, ips, w, out, p, t, d, i)
+            process_each(check, ips, w, out, c, p, t, d, i)
     except KeyboardInterrupt:
         print('Interrupted by user.')
 
