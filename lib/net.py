@@ -210,6 +210,10 @@ class RTSPConnection(Connection):
 
     _cseqs = dict()
 
+    def __init__(self, host, port=554, interface: str = '', timeout: float = 1, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
+        super().__init__(host, port, interface=interface,
+                         timeout=timeout, query_timeout=query_timeout, ua=ua)
+
     def query(self, url: str = '*', headers: dict = {}) -> Response:
         method = self.M_OPTIONS if url == '*' else self.M_DESCRIBE
         connection = self._c
