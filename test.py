@@ -18,22 +18,20 @@ def process_host(host):
     with RTSPConnection(host) as connection:
         for fuzz_result in Fuzz(connection, paths):
             existing_path = fuzz_result.path
+
             if fuzz_result.ok:
-                url = connection.url(existing_path)
-                print(url)
-                break
+                return connection.url(existing_path)
             elif fuzz_result.auth_needed:
                 cred = Brute(connection, existing_path, creds).run()
                 if cred:
-                    url = connection.url(existing_path, cred)
-                    print(url)
+                    return connection.url(existing_path, cred)
 
 
 def main(hosts_file):
     with open(hosts_file) as hf:
         for ln in hf:
-            host = ln.rstrip()
-            process_host(host)
+            result = process_host(ln.rstrip())
+            print(result)
 
 
 if __name__ == "__main__":
