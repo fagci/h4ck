@@ -130,7 +130,7 @@ def check_vulns(url, _):
             progress = Progress(sum(1 for _ in f))
             f.seek(0)
 
-            ff = (f'{url}/{ln.rstrip()}' for ln in f)
+            ff = (f'{url}{ln.rstrip()}' for ln in f)
             check = partial(check_path, allow_html)
 
             with ThreadPoolExecutor() as ex:
