@@ -44,7 +44,7 @@ class DictLoader:
         return self._items.__next__()
 
 
-class Brute(str):
+class Brute:
     __slots__ = (
         '_connection',
         '_dictionary',

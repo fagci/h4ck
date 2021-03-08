@@ -10,26 +10,30 @@ DATA_PATH = Path(os.path.dirname(__file__)) / 'data'
 PATHS_FILE = DATA_PATH / 'rtsp_paths1.txt'
 CREDS_FILE = DATA_PATH / 'rtsp_creds_my.txt'
 
+paths = ListFile(PATHS_FILE)
+creds = ListFile(CREDS_FILE)
+
+
+def process_host(host):
+    with RTSPConnection(host) as connection:
+        for fuzz_result in Fuzz(connection, paths):
+            existing_path = fuzz_result.path
+            if fuzz_result.ok:
+                url = connection.url(existing_path)
+                print(url)
+                break
+            elif fuzz_result.auth_needed:
+                cred = Brute(connection, existing_path, creds).run()
+                if cred:
+                    url = connection.url(existing_path, cred)
+                    print(url)
+
 
 def main(hosts_file):
-    paths = ListFile(PATHS_FILE)
-    creds = ListFile(CREDS_FILE)
-
     with open(hosts_file) as hf:
         for ln in hf:
             host = ln.rstrip()
-            with RTSPConnection(host) as connection:
-                for fuzz_result in Fuzz(connection, paths):
-                    existing_path = fuzz_result.path
-                    if fuzz_result.ok:
-                        url = connection.url(existing_path)
-                        print(url)
-                        break
-                    elif fuzz_result.auth_needed:
-                        cred = Brute(connection, existing_path, creds).run()
-                        if cred:
-                            url = connection.url(existing_path, cred)
-                            print(url)
+            process_host(host)
 
 
 if __name__ == "__main__":
