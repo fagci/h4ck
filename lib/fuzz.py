@@ -1,5 +1,10 @@
+import os
 from pathlib import Path
 from lib.net import Connection, Response
+
+DATA_PATH = Path(os.path.dirname(__file__)).parent / 'data'
+PATHS_FILE = DATA_PATH / 'rtsp_paths.txt'
+CREDS_FILE = DATA_PATH / 'rtsp_creds.txt'
 
 
 class ListFile(list):
@@ -51,9 +56,10 @@ class Brute:
         '_path',
     )
 
-    def __init__(self, connection: Connection, path: str, creds: list):
+    def __init__(self, connection: Connection, path: str, creds: list = []):
         self._connection = connection
-        self._dictionary = creds
+        if not Brute._dictionary:
+            Brute._dictionary = creds or ListFile(CREDS_FILE)
         self._path = path
 
     def run(self):
@@ -82,9 +88,10 @@ class Fuzz:
         '_dictionary',
     )
 
-    def __init__(self, connection: Connection, dictionary: list):
+    def __init__(self, connection: Connection, dictionary: list = []):
         self._connection = connection
-        self._dictionary = dictionary
+        if not Fuzz._dictionary:
+            Fuzz._dictionary = dictionary or ListFile(PATHS_FILE)
 
     def check(self, path: str = '') -> Response:
         return self._connection.get(path)

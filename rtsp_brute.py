@@ -21,8 +21,8 @@ DATA_DIR = WORK_DIR / 'data'
 LOCAL_DIR = WORK_DIR / 'local'
 
 LOG_FILE = LOCAL_DIR / 'rtsp_brute.log'
-PATHS_FILE = DATA_DIR / 'rtsp_paths1.txt'
-CREDS_FILE = DATA_DIR / 'rtsp_creds_my.txt'
+PATHS_FILE = DATA_DIR / 'rtsp_paths.txt'
+CREDS_FILE = DATA_DIR / 'rtsp_creds.txt'
 
 
 paths: list
