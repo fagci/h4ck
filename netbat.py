@@ -6,7 +6,7 @@ from random import shuffle
 
 from fire import Fire
 
-from lib.scan import check_port, process
+from lib.scan import check_port, process, process_each
 from lib.utils import parse_range_list
 
 
@@ -54,19 +54,13 @@ def ips_from_file(file, randomize=False):
                 yield d
 
 
-def check_ip(ips, gl, pl, ports, iface):
-    while True:
-        with gl:
-            try:
-                ip = next(ips)
-            except StopIteration:
-                break
-        for port in ports:
-            res = check_port(ip, int(port), iface=iface)
-            if res:
-                with pl:
-                    print(f'{ip}:{port} ({int(res[1]*1000):>4} ms)')
-                    write_result(ip, port)
+def check_ip(ip, pl, ports, iface):
+    for port in ports:
+        res = check_port(ip, int(port), iface=iface)
+        if res:
+            with pl:
+                print(f'{ip}:{port} ({int(res[1]*1000):>4} ms)')
+                write_result(ip, port)
 
 
 def main(hosts, ports, workers=16, r=False, i=None):
@@ -95,7 +89,7 @@ def main(hosts, ports, workers=16, r=False, i=None):
     else:
         ips = iter(hosts)
 
-    process(check_ip, ips, workers, ports, i)
+    process_each(check_ip, ips, workers, ports, i)
 
 
 if __name__ == "__main__":
