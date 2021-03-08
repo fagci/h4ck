@@ -3,6 +3,7 @@ from queue import Queue
 import socket
 from threading import Thread
 from fire import Fire
+from lib.utils import parse_range_list
 
 
 def port_check(target):
@@ -17,7 +18,7 @@ def scan(queue):
         queue.task_done()
 
 
-def main(ip: str = '127.0.0.1', pf: int = 1, pt: int = 1024, t: float = 1, w: int = 64):
+def main(ip: str = '127.0.0.1', ports: str = '1-1024', t: float = 1, w: int = 64):
     queue = Queue()
     socket.setdefaulttimeout(t)
 
@@ -26,7 +27,7 @@ def main(ip: str = '127.0.0.1', pf: int = 1, pt: int = 1024, t: float = 1, w: in
     for _ in range(w):
         Thread(target=scan, args=args, daemon=True).start()
 
-    for port in range(pf, pt):
+    for port in parse_range_list(ports):
         target = (ip, port)
         queue.put(target)
 
