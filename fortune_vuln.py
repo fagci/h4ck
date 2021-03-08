@@ -1,8 +1,9 @@
 #!/usr/bin/env -S python -u
 """Find potentially vulnerable hosts on http 80 over all Internet"""
+from lib.utils import random_lowercase_alpha
 import logging
-from random import randrange
 from fire import Fire
+import os
 from lib.scan import generate_ips, process_each
 from lib.net import HTTPConnection, logger
 
@@ -10,32 +11,13 @@ __author__ = 'Mikhail Yudin aka fagci'
 
 logger.setLevel(logging.DEBUG)
 
-FAKE_PATH = '/%s' % ''.join(chr(randrange(ord('a'), ord('z')))
-                            for _ in range(randrange(3, 16)))
+FAKE_PATH = '/%s' % random_lowercase_alpha(3, 16)
 
 print('Started with', FAKE_PATH, 'fake path')
 
-VULNS = [
-    '.env',
-    '.htpasswd',
-    '.htaccess',
-    'composer.json',
-    'README.md',
-    'README.txt',
-    'log.txt',
-    'data.txt',
-    'accounts.txt',
-    'pass.txt',
-    'passes.txt',
-    'passwords.txt',
-    'pazz.txt',
-    'pazzezs.txt',
-    'pw.txt',
-    'technico.txt',
-    'usernames.txt',
-    'users.txt',
-    '.gitignore',
-]
+DIR = os.path.dirname(os.path.abspath(__file__))
+VULNS_FILE = os.path.join(DIR, 'data', 'web_potential_vuln.txt')
+VULNS = [ln.rstrip() for ln in open(VULNS_FILE)]
 
 
 def check_ip(ip, pl, interface):
@@ -54,8 +36,6 @@ def check_ip(ip, pl, interface):
 
             if response.found:
                 vulns.append(url)
-                with pl:
-                    print('+', ip, url)
 
         if vulns:
             t = 'fake' if len(VULNS) == len(vulns) else 'real'

@@ -35,7 +35,12 @@ class Response(Packet):
 
         data_lines = iter(data.splitlines())
 
-        self.protocol, code, self.status_msg = next(data_lines).split(None, 2)
+        r_parts = next(data_lines).split(None, 2)
+        if len(r_parts) == 3:
+            self.protocol, code, self.status_msg = r_parts
+        else:
+            self.protocol, code = r_parts
+
         self.code = int(code)
 
         for ln in data_lines:
@@ -183,17 +188,14 @@ class HTTPConnection(Connection):
         if not connection:
             return Response()
 
-        req = (
-            'GET %s HTTP/1.1\r\n'
-            'Host: %s\r\n'
-            'User-Agent: %s\r\n'
-            '\r\n\r\n'
-        ) % (url, self.host, self._user_agent)
+        request = Request('GET', url, Request.PROTO_HTTP_1_1)
+        request.headers['Host'] = self.host
+        request.headers['User-Agent'] = self._user_agent
 
         try:
-            connection.sendall(req.encode())
+            connection.sendall(str(request).encode())
             # TODO: get overall response
-            data = connection.recv(1024).decode()
+            data = connection.recv(1024).decode(errors='ignore')
             if data.startswith('HTTP/'):
                 return Response(data)
         except OSError:
@@ -233,7 +235,7 @@ class RTSPConnection(Connection):
 
         try:
             connection.sendall(request_str.encode())
-            data = connection.recv(1024).decode()
+            data = connection.recv(1024).decode(errors='ignore')
 
             logger.info('>> %s' % data.rstrip())
 

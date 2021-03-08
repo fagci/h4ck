@@ -73,6 +73,17 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f %s%s" % (num, 'Yi', suffix)
 
 
+def random_lowercase_alpha(min_length: int = 3, max_length: int = 16):
+    from random import randrange
+    return ''.join(
+        chr(
+            randrange(ord('a'), ord('z'))
+        ) for _ in range(
+            randrange(min_length, max_length)
+        )
+    )
+
+
 def geoip_str_online(ip):
     import requests
     url = 'https://ipinfo.io/%s/json' % ip
