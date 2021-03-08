@@ -8,9 +8,6 @@
 `vpn` -- connect to VPN server using openvpn  
 `webmap` -- Scan web application for CMS, used techs, vulns (file, dir fuzz)
 
-
-:exclamation: Only for education purposes. Use at your own risk.
-
 ## Some screenshots
 
 ### webmap
@@ -20,3 +17,7 @@
 ### fortune_rtsp
 
 ![fagci's fortune_rtsp results](.img/fortune_rtsp.jpg)
+
+## Precaution
+
+:exclamation: Only for education purposes. Use at your own risk.
