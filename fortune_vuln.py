@@ -1,4 +1,4 @@
-#!/usr/bin/env -S python -u
+#!/usr/bin/env python3
 """Find potentially vulnerable hosts on http 80 over all Internet"""
 import os
 
