@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from fire import Fire
+from tqdm import tqdm
 
 from lib.fuzz import Brute, Fuzz
 from lib.net import RTSPConnection
@@ -20,11 +23,23 @@ def process_host(host):
 
 
 def main(hosts_file):
-    with open(hosts_file) as hf:
-        for ln in hf:
-            result = process_host(ln.rstrip())
-            if result:
-                print(result)
+    urls = []
+    with ThreadPoolExecutor(64) as ex:
+        futures = []
+        with open(hosts_file) as hf:
+            for ln in hf:
+                host = ln.rstrip()
+                futures.append(ex.submit(process_host, host))
+
+        with tqdm(total=len(futures)) as progress:
+            for future in as_completed(futures):
+                url = future.result()
+                progress.update()
+                if url:
+                    urls.append(url)
+
+    for url in urls:
+        print(url)
 
 
 if __name__ == "__main__":
