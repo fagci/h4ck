@@ -1,15 +1,13 @@
 #!/usr/bin/env -S python -u
 """Find potentially vulnerable hosts on http 80 over all Internet"""
-from lib.utils import random_lowercase_alpha
-import logging
-from fire import Fire
 import os
+
+from fire import Fire
+
+from lib.net import HTTPConnection
 from lib.scan import generate_ips, process_each
-from lib.net import HTTPConnection, logger
+from lib.utils import random_lowercase_alpha
 
-__author__ = 'Mikhail Yudin aka fagci'
-
-logger.setLevel(logging.DEBUG)
 
 FAKE_PATH = '/%s' % random_lowercase_alpha(3, 16)
 
@@ -41,7 +39,6 @@ def check_ip(ip, pl, interface):
             t = 'fake' if len(VULNS) == len(vulns) else 'real'
             with pl:
                 print('+', t, ip, vulns)
-            return
 
 
 def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
