@@ -11,8 +11,6 @@ from lib.utils import random_lowercase_alpha
 
 FAKE_PATH = '/%s' % random_lowercase_alpha(3, 16)
 
-print('Started with', FAKE_PATH, 'fake path')
-
 DIR = os.path.dirname(os.path.abspath(__file__))
 VULNS_FILE = os.path.join(DIR, 'data', 'web_potential_vuln.txt')
 VULNS = [ln.rstrip() for ln in open(VULNS_FILE)]
