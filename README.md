@@ -1,6 +1,6 @@
 # h4ck
 
-&laquo;Hacking&raquo; tools written by me.
+&laquo;Hacking&raquo; tools. WIP
 
 `fortune*` -- random IPs scanner/generator  
 `netbat` -- hosts + ports scaner, supports hostlist (+CIDR)  
@@ -10,7 +10,5 @@
 
 
 :exclamation: Only for education purposes. Use at your own risk.
-
-WIP =)
 
 ![fagci's webmap results](.img/webmap.png)
