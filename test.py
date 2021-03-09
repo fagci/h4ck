@@ -5,8 +5,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fire import Fire
 from tqdm import tqdm
 
-from lib.fuzz import Brute, Fuzz
+from lib.fuzz import Brute, Fuzz, ListFile
 from lib.net import RTSPConnection
+from lib.scan import process_threaded
 
 
 def process_host(host):
@@ -23,22 +24,9 @@ def process_host(host):
 
 
 def main(hosts_file):
-    urls = []
-    with ThreadPoolExecutor(64) as ex:
-        futures = []
-        with open(hosts_file) as hf:
-            with tqdm(total=sum(1 for _ in hf)) as progress:
-                hf.seek(0)
-                for ln in hf:
-                    host = ln.rstrip()
-                    future = ex.submit(process_host, host)
-                    future.add_done_callback(lambda _: progress.update())
-                    futures.append(future)
+    hosts = ListFile(hosts_file)
 
-                for future in as_completed(futures):
-                    url = future.result()
-                    if url:
-                        urls.append(url)
+    urls = process_threaded(process_host, hosts)
 
     for url in urls:
         print(url)

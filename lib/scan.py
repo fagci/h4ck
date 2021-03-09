@@ -2,6 +2,7 @@ import socket as so
 import struct
 from time import sleep
 from time import time
+from typing import Callable
 import warnings
 
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -164,3 +165,27 @@ def process(fn, it, workers=16, *args):
 
     while any(map(lambda t: t.is_alive(), threads)):
         sleep(0.5)
+
+
+def process_threaded(fn: Callable, items, callback: Callable = lambda _: True, progress: bool = True, workers: int = None):
+    from tqdm import tqdm
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    total = len(items)
+    results = []
+
+    with ThreadPoolExecutor(workers) as ex:
+        with tqdm(total=total, disable=not progress) as prg:
+            futures = []
+
+            for item in items:
+                future = ex.submit(fn, item)
+                future.add_done_callback(lambda _: prg.update())
+                futures.append(future)
+
+            for future in as_completed(futures):
+                result = future.result()
+                callback(result)
+                results.append(result)
+
+    return results
