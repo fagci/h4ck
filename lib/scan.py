@@ -167,7 +167,7 @@ def process(fn, it, workers=16, *args):
         sleep(0.5)
 
 
-def process_threaded(fn: Callable, items, callback: Callable = lambda _: True, progress: bool = True, workers: int = None):
+def process_threaded(fn: Callable, items: list, callback: Callable = lambda _: True, progress: bool = True, workers: int = None):
     from tqdm import tqdm
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -185,7 +185,9 @@ def process_threaded(fn: Callable, items, callback: Callable = lambda _: True, p
 
             for future in as_completed(futures):
                 result = future.result()
-                callback(result)
-                results.append(result)
+                cb_result = callback(result)
+
+                if cb_result:
+                    results.append(result)
 
     return results

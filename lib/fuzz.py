@@ -51,11 +51,9 @@ class DictLoader:
 
 
 class Brute:
-    __slots__ = (
-        '_connection',
-        '_dictionary',
-        '_path',
-    )
+    _connection = None
+    _dictionary = []
+    _path = ''
 
     def __init__(self, connection: Connection, path: str, creds: list = []):
         self._connection = connection
@@ -84,17 +82,21 @@ class FuzzResult:
         self.ok = response.ok
         self.auth_needed = response.auth_needed
 
+    def __repr__(self) -> str:
+        return '%s %s %s' % (self.path, self.ok, self.auth_needed)
+
 
 class Fuzz:
-    __slots__ = (
-        '_connection',
-        '_dictionary',
-    )
+    _connection = None
+    _dictionary = []
+    _fake_path = ''
 
     def __init__(self, connection: Connection, dictionary: list = []):
         self._connection = connection
+
         if not Fuzz._dictionary:
             Fuzz._dictionary = dictionary or ListFile(PATHS_FILE)
+
         if not Fuzz._fake_path:
             Fuzz._fake_path = '/%s' % random_lowercase_alpha()
 
