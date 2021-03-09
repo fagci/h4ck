@@ -27,16 +27,18 @@ def main(hosts_file):
     with ThreadPoolExecutor(64) as ex:
         futures = []
         with open(hosts_file) as hf:
-            for ln in hf:
-                host = ln.rstrip()
-                futures.append(ex.submit(process_host, host))
+            with tqdm(total=sum(1 for _ in hf)) as progress:
+                hf.seek(0)
+                for ln in hf:
+                    host = ln.rstrip()
+                    future = ex.submit(process_host, host)
+                    future.add_done_callback(lambda _: progress.update())
+                    futures.append(future)
 
-        with tqdm(total=len(futures)) as progress:
-            for future in as_completed(futures):
-                url = future.result()
-                progress.update()
-                if url:
-                    urls.append(url)
+                for future in as_completed(futures):
+                    url = future.result()
+                    if url:
+                        urls.append(url)
 
     for url in urls:
         print(url)
