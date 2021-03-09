@@ -2,7 +2,6 @@
 
 &laquo;Hacking&raquo; tools. WIP
 
-|---|---|
 |Tool|Purpose|
 |---|---|
 |fortune*| random IPs scanner/generator |
