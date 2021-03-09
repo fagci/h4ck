@@ -1,7 +1,6 @@
 av
 colorama
 fire
-pyinquirer
 pyyaml
 requests
 tqdm
