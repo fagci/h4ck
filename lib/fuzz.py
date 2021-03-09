@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from lib.net import Connection, Response
+from lib.net import Connection, RTSPConnection, Response
 from lib.utils import random_lowercase_alpha
 
 DATA_PATH = Path(os.path.dirname(__file__)).parent / 'data'
@@ -61,7 +61,7 @@ class Brute:
         if not Brute._dictionary:
             Brute._dictionary = creds or ListFile(CREDS_FILE)
 
-    def run(self):
+    def __iter__(self):
         auth = self._connection.auth
 
         for cred in self._dictionary:
@@ -71,7 +71,7 @@ class Brute:
                 return
 
             if response.ok:
-                return cred
+                yield cred
 
 
 class FuzzResult:
@@ -95,13 +95,17 @@ class Fuzz:
         self._connection = connection
 
         if not Fuzz._dictionary:
-            fp = Fuzz._fake_path = '/%s' % random_lowercase_alpha()
+            fp = Fuzz._fake_path = '/%s' % random_lowercase_alpha(3, 8)
             Fuzz._dictionary = [fp] + (dictionary or ListFile(PATHS_FILE))
 
     def check(self, path: str = '') -> Response:
         return self._connection.get(path)
 
     def __iter__(self):
+        response = self._connection.query()
+        if not response.ok:
+            return
+
         for path in self._dictionary:
             response = self.check(path)
 

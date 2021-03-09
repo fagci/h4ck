@@ -25,7 +25,7 @@ def check(ip, pl, out, p, t, i):
         dt = time() - tt
         response = connection.query()
 
-        if not response.found:
+        if not response.found or 'PLAY' not in response.headers.get('public'):
             return
 
         server = response.headers.get('server', '-')

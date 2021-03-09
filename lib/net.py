@@ -137,6 +137,9 @@ class Connection:
         self._c: Optional[socket] = None
         self._user_agent = ua
 
+    def query(self, url='*'):
+        raise NotImplementedError
+
     def get(self, path):
         raise NotImplementedError
 
@@ -210,13 +213,15 @@ class RTSPConnection(Connection):
 
     _cseqs = dict()
 
-    def __init__(self, host, port=554, interface: str = '', timeout: float = 1, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
+    def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
         super().__init__(host, port, interface=interface,
                          timeout=timeout, query_timeout=query_timeout, ua=ua)
 
     def query(self, url: str = '*', headers: dict = {}) -> Response:
         method = self.M_OPTIONS if url == '*' else self.M_DESCRIBE
         connection = self._c
+        if not connection:
+            return Response()
 
         if url == '*':
             cseq = 0
@@ -237,30 +242,49 @@ class RTSPConnection(Connection):
 
         logger.info('<< %s' % request_str.rstrip())
 
+        err = 'Unhandled error'
+
         try:
-            connection.sendall(request_str.encode())
-            data = connection.recv(1024).decode(errors='ignore')
+            connection.sendall(request_str.encode('ascii'))
+            data_bytes = connection.recv(1024)
 
-            logger.info('>> %s' % data.rstrip())
+            if data_bytes:
+                data = data_bytes.decode(errors='replace')
 
-            if data.startswith('RTSP/'):
-                response = Response(data)
+                logger.info('>> %s' % data.rstrip())
 
-                if response.code == 401:
-                    self._auth_fn = self.get_auth_header_fn(response.headers)
+                if data.startswith('RTSP/'):
+                    response = Response(data)
 
-                return response
+                    if response.code == 401:
+                        self._auth_fn = self.get_auth_header_fn(
+                            response.headers)
+
+                    return response
+                else:
+                    err = 'Not rtsp response'
+            else:
+                err = 'Empty response'
 
         except BrokenPipeError as e:
             logger.error(repr(e))
+            err = e
         except SocketTimeout as e:
             logger.warning(repr(e))
+            err = e
         except ConnectionResetError as e:
             logger.error(repr(e))
+            err = e
         except UnicodeDecodeError as e:
             logger.error(repr(e))
+            err = e
+        except Exception as e:
+            logger.error(repr(e))
+            err = e
 
-        return Response()
+        response = Response()
+        response.status_msg = str(err)
+        return response
 
     def get(self, path):
         url = self.url(path)

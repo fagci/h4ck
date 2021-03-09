@@ -25,7 +25,8 @@ def capture_image_av(stream_url, img_path):
             for frame in c.decode(vs):
                 frame.to_image().save(img_path, quality=85)
                 return True
-
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('[E]', stream_url, repr(e))
         pass
