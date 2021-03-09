@@ -95,26 +95,25 @@ class Fuzz:
         self._connection = connection
 
         if not Fuzz._dictionary:
-            Fuzz._dictionary = dictionary or ListFile(PATHS_FILE)
-
-        if not Fuzz._fake_path:
-            Fuzz._fake_path = '/%s' % random_lowercase_alpha()
+            fp = Fuzz._fake_path = '/%s' % random_lowercase_alpha()
+            Fuzz._dictionary = [fp] + (dictionary or ListFile(PATHS_FILE))
 
     def check(self, path: str = '') -> Response:
         return self._connection.get(path)
 
     def __iter__(self):
-        response = self.check(self._fake_path)
-
-        if response.found:
-            yield FuzzResult('/', response)
-            return
-
         for path in self._dictionary:
             response = self.check(path)
 
             if response.error:
                 return
 
-            if response.found or response.auth_needed:
+            if response.found:
+                if path == Fuzz._fake_path:
+                    path = '/'
+                    yield FuzzResult(path, response)
+                    return
+                yield FuzzResult(path, response)
+
+            if response.auth_needed and path != Fuzz._fake_path:
                 yield FuzzResult(path, response)

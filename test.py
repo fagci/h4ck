@@ -18,6 +18,8 @@ def process_host(host):
                 cred = Brute(connection, existing_path).run()
                 if cred:
                     return connection.url(existing_path, cred)
+                else:
+                    break
 
 
 def main(hosts_file):
