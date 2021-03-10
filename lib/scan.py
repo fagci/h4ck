@@ -114,9 +114,9 @@ def get_banner(ip, port, timeout=3, send=None):
                 s.settimeout(timeout)
                 if s.connect_ex((ip, port)) == 0:
                     if send:
-                        s.send(send.encode())
+                        s.sendall(send.encode())
                     elif port not in (21,):
-                        s.send('Hello\r\n'.encode())
+                        s.sendall('OPTIONS * HTTP/1.1\r\n\r\n'.encode())
                     banner = s.recv(1024).decode()
                     for ln in banner.splitlines():
                         if any(x in ln.lower() for x in ('ssh', 'ftp', 'samba')) or (ln.strip()):
