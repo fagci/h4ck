@@ -217,18 +217,23 @@ async def process_threaded_async(fn: Callable, items, workers: int = None):
     return results
 
 
-def get_domains_from_cert(hostname, port: int = 443, timeout: float = 10):
+def get_domains_from_cert(hostname, port: int = 443, timeout: float = 10) -> list:
     import ssl
     import socket
 
     context = ssl.create_default_context()
     context.check_hostname = False
-    context.verify_mode = ssl.VerifyMode.CERT_NONE
+    # context.verify_mode = ssl.VerifyMode.CERT_NONE
 
-    with context.wrap_socket(socket.socket(), server_hostname=hostname) as c:
-        c.settimeout(timeout)
-        c.connect((hostname, port))
+    try:
+        with context.wrap_socket(socket.socket(), server_hostname=hostname) as c:
+            c.settimeout(timeout)
+            c.connect((hostname, port))
 
-        ssl_info = c.getpeercert()
+            ssl_info = c.getpeercert()
 
-        return [v for _, v in ssl_info.get('subjectAltName', [])]
+            return [v for _, v in ssl_info.get('subjectAltName', [])]
+    except:
+        pass
+
+    return []

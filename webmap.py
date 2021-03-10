@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Scan web application for CMS, used techs, vulns"""
 
+from urllib.parse import urlparse
+
 import colorama
 from fire import Fire
 import requests
 
 from lib.http import iri_to_uri
 from lib.progress import Progress
+from lib.scan import get_domains_from_cert
 from lib.utils import interruptable, tim
 
 CF = colorama.Fore
@@ -68,6 +71,22 @@ def check_path(allow_html: bool, url: str):
 
 def check_src(text: str, inclusions):
     return filter(lambda x: x in text, inclusions)
+
+
+@interruptable
+def check_domains(url, _):
+    """Get linked domains"""
+    try:
+        up = urlparse(url)
+        hostname, port = up.hostname, up.port
+        port = port if port and port != 80 else 443
+        linked_domains = get_domains_from_cert(hostname, port)
+        if linked_domains:
+            print('%s[+] Domains:' % CYELLOW, ', '.join(linked_domains), CEND)
+        else:
+            print('%s[-] no domains found' % CDGREY, CEND)
+    except Exception as e:
+        print('%s[-] Failed:' % CDGREY, repr(e), CEND)
 
 
 @interruptable
@@ -148,6 +167,7 @@ def main(url):
     print('='*42)
 
     tasks = [
+        check_domains,
         check_headers,
         check_cms,
         check_techs,
