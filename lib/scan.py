@@ -191,3 +191,27 @@ def process_threaded(fn: Callable, items: list, callback: Callable = lambda _: T
                     results.append(result)
 
     return results
+
+
+async def process_threaded_async(fn: Callable, items, workers: int = None):
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    results = []
+
+    loop = asyncio.get_event_loop()
+
+    with ThreadPoolExecutor(workers) as ex:
+        futures = []
+
+        for item in items:
+            future = loop.run_in_executor(ex, fn, item)
+            futures.append(future)
+
+        for future in asyncio.as_completed(futures):
+            result = await future
+
+            if result:
+                results.append(result)
+
+    return results

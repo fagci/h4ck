@@ -14,13 +14,13 @@ def capture_image_av(stream_url, img_path):
     import av
     options = {
         'rtsp_transport': 'tcp',
-        'rtsp_flags': 'prefer_tcp',
-        'stimeout': '60000000',
+        # 'rtsp_flags': 'prefer_tcp',
+        # 'stimeout': '10000000',
     }
     try:
-        with av.open(stream_url, options=options, timeout=30) as c:
+        with av.open(stream_url, options=options, timeout=10) as c:
             vs = c.streams.video[0]
-            vs.thread_type = "AUTO"
+            # vs.thread_type = "AUTO"
             vs.codec_context.skip_frame = 'NONKEY'
             for frame in c.decode(vs):
                 frame.to_image().save(img_path, quality=85)

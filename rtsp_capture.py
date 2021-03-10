@@ -29,7 +29,7 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
     if captured and capture_callback:
         import subprocess
         subprocess.Popen([capture_callback, stream_url,
-                          img_path, geoip_str_online(up.hostname)]).communicate(timeout=10)
+                          img_path, geoip_str_online(up.hostname)]).communicate(timeout=25)
 
 
 def main(urls_file, ff=False, cb=''):
