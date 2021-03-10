@@ -16,6 +16,8 @@
 
 ![fagci's webmap results](.img/webmap.png)
 
+![fagci's webmap results with domains](.img/webmap2.jpg)
+
 ### fortune_rtsp
 
 ![fagci's fortune_rtsp results](.img/fortune_rtsp.jpg)
