@@ -37,6 +37,7 @@ BANNER = r"""
 # file, allow_html
 
 FUZZ_FILES = [
+    ('data/web_fw_paths.txt', True),
     ('data/web_fuzz.txt', False),
     ('data/web_dir_fuzz.txt', True),
 ]

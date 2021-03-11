@@ -9,15 +9,15 @@ from lib.scan import generate_ips, process_each
 from lib.utils import random_lowercase_alpha
 
 
-FAKE_PATH = '/%s' % random_lowercase_alpha(3, 16)
+FAKE_PATH = '/%s' % random_lowercase_alpha(3, 8)
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 VULNS_FILE = os.path.join(DIR, 'data', 'web_potential_vuln.txt')
 VULNS = [ln.rstrip() for ln in open(VULNS_FILE)]
 
 
-def check_ip(ip, pl, interface):
-    with HTTPConnection(ip, 80, interface, 1.5, 3) as c:
+def check_ip(ip: str, pl, interface, verbose):
+    with HTTPConnection(ip, 80, interface, 2, 5) as c:
         # all queries handled by one script
         if c.get(FAKE_PATH).ok:
             return
@@ -34,13 +34,19 @@ def check_ip(ip, pl, interface):
                 vulns.append(url)
 
         if vulns:
-            t = 'fake' if len(VULNS) == len(vulns) else 'real'
+            vulnerability = round(len(vulns) * 100 / len(VULNS), 1)
+            if vulnerability > 75:
+                return
             with pl:
-                print('+', t, ip, vulns)
+                if verbose:
+                    print('{:<15}'.format(ip), len(vulns), ', '.join(vulns))
+                else:
+                    print('{:<15}'.format(ip), len(vulns))
 
 
-def check_ips(c: int = 200000, w: int = 1024, i: str = ''):
-    process_each(check_ip, generate_ips(c), w, i)
+def check_ips(c: int = 200000, w: int = 1024, i: str = '', v: bool = False):
+    print('Tolal vulns:', len(VULNS))
+    process_each(check_ip, generate_ips(c), w, i, v)
 
 
 if __name__ == "__main__":
