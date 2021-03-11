@@ -33,6 +33,8 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
 
 
 def main(urls_file, ff=False, cb=''):
+    if not os.path.exists(CAPTURES_DIR):
+        os.mkdir(CAPTURES_DIR)
     with open(urls_file) as f:
         for ln in f:
             url = ln.rstrip()

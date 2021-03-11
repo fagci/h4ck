@@ -1,6 +1,7 @@
 av
 colorama
 fire
+pillow
 pyyaml
 requests
 tqdm
