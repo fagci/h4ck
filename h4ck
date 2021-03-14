@@ -44,6 +44,8 @@ class CommandLine(Cmd):
     def do_unload(self):
         if self._module:
             for m_name, _ in self.methods(self._module):
+                if m_name.startswith('_'):
+                    continue
                 delattr(self, 'do_%s' % m_name)
                 delattr(self, 'help_%s' % m_name)
 
@@ -54,6 +56,8 @@ class CommandLine(Cmd):
             self._module = import_module('modules.%s' % module)
             methods = []
             for m_name, method in self.methods(self._module):
+                if m_name.startswith('_'):
+                    continue
                 methods.append(m_name)
                 setattr(self, 'do_%s' % m_name, method)
                 setattr(self, 'help_%s' % m_name, lambda: print(method.__doc__))

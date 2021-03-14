@@ -22,7 +22,7 @@ def process_host(interface, host):
                 break
 
 
-def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool = False):
+def brute(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool = False):
     from functools import partial
 
     if d:
@@ -41,4 +41,4 @@ def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool =
 
 
 if __name__ == "__main__":
-    Fire(main)
+    Fire(brute)

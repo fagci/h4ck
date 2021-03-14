@@ -6,11 +6,9 @@ from fire import Fire
 from lib.rtsp import capture_image
 from lib.utils import geoip_str_online
 from lib.utils import geoip_str_online, str_to_filename
+from lib.files import LOCAL_DIR
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-LOCAL_DIR = os.path.join(DIR, 'local')
-DATA_DIR = os.path.join(DIR, 'data')
-CAPTURES_DIR = os.path.join(LOCAL_DIR, 'rtsp_captures')
+CAPTURES_DIR = LOCAL_DIR / 'rtsp_captures'
 
 
 def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
@@ -20,7 +18,7 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
     p = str_to_filename(f'{up.path}{up.params}')
 
     img_name = f'{up.hostname}_{up.port}_{up.username}_{up.password}_{p}'
-    img_path = os.path.join(CAPTURES_DIR, f'{img_name}.jpg')
+    img_path = CAPTURES_DIR / ('%s.jpg' % img_name)
 
     captured = capture_image(stream_url, img_path, prefer_ffmpeg)
 
@@ -29,12 +27,13 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
     if captured and capture_callback:
         import subprocess
         subprocess.Popen([capture_callback, stream_url,
-                          img_path, geoip_str_online(up.hostname)]).communicate(timeout=25)
+                          str(img_path), geoip_str_online(up.hostname)]).communicate(timeout=25)
 
 
 def main(urls_file, ff=False, cb=''):
-    if not os.path.exists(CAPTURES_DIR):
-        os.mkdir(CAPTURES_DIR)
+    if not CAPTURES_DIR.exists():
+        CAPTURES_DIR.mkdir()
+
     with open(urls_file) as f:
         for ln in f:
             url = ln.rstrip()

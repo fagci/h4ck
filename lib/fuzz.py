@@ -7,6 +7,8 @@ from lib.utils import random_lowercase_alpha
 PATHS_FILE = FUZZ_DIR / 'rtsp.txt'
 CREDS_FILE = BRUTE_DIR / 'rtsp.txt'
 
+print(PATHS_FILE.absolute())
+
 
 class ListFile(list):
     def __init__(self, file_path):

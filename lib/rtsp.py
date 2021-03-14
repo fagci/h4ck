@@ -14,8 +14,8 @@ def capture_image_av(stream_url, img_path):
     import av
     options = {
         'rtsp_transport': 'tcp',
-        # 'rtsp_flags': 'prefer_tcp',
-        # 'stimeout': '10000000',
+        'rtsp_flags': 'prefer_tcp',
+        'stimeout': '30000000',
     }
     try:
         with av.open(stream_url, options=options, timeout=10) as c:
