@@ -32,12 +32,6 @@ class CommandLine(Cmd):
         self._module = None
         info('Available modules:', ', '.join(self._modules))
 
-    def do_quit(self, _):
-        return True
-
-    def do_q(self, _):
-        return True
-
     @staticmethod
     def methods(module):
         from inspect import getmembers, isfunction
@@ -89,6 +83,15 @@ class CommandLine(Cmd):
         readline.set_history_length(self._histfile_size)
         readline.write_history_file(str(self._histfile))
         print('Bye')
+
+    def do_quit(self, _):
+        return True
+
+    def do_q(self, _):
+        return True
+
+    def do_EOF(self, _):
+        return True
 
 
 def main():
