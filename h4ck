@@ -4,6 +4,7 @@ from cmd import Cmd
 
 from fire import Fire
 
+from lib.colors import *
 
 BANNER = r"""
  _     _  _        _
@@ -15,12 +16,55 @@ BANNER = r"""
 
 class CommandLine(Cmd):
     prompt = 'h4ck> '
+    __slots__ = ('_modules', '_module')
+
+    def __init__(self):
+        super().__init__()
+        import pkgutil
+        self._modules = [name for _,name,_ in pkgutil.iter_modules(['modules'])]
+        self._module = None
+        for m in self._modules:
+            info(m)
+
 
     def do_quit(self, _):
         raise KeyboardInterrupt
 
     def do_q(self, _):
         self.do_quit(_)
+
+    @staticmethod
+    def methods(module):
+        from inspect import getmembers, isfunction
+        return getmembers(module, isfunction)
+
+    def get_names(self):
+        return dir(self)
+
+    def do_use(self, module):
+        process('Loading', module)
+        from importlib import import_module
+        if self._module:
+            for m_name, method in self.methods(self._module):
+                delattr(self, 'do_%s' % m_name)
+                delattr(self, 'help_%s' % m_name)
+        try:
+            self._module = import_module('modules.%s' % module)
+            for m_name, method in self.methods(self._module):
+                found(m_name)
+                setattr(self, 'do_%s' % m_name, method)
+                setattr(self, 'help_%s' % m_name, lambda: print(method.__doc__))
+        except ModuleNotFoundError as e:
+            err('Module', e.name[len('modules.'):], 'not found')
+        except Exception as e:
+            err(repr(e))
+        else:
+            info(module, 'loaded')
+
+    def complete_use(self, text, line, si, ei):
+        completions = self._modules
+        return completions
+
 
 def main():
     CommandLine().cmdloop(BANNER)
