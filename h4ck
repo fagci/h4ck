@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+from cmd import Cmd
+
+from fire import Fire
+
+class CommandLine(Cmd):
+    prompt = 'h4ck> '
+
+    def do_quit(self, _):
+        raise KeyboardInterrupt
+
+if __name__ == "__main__":
+    try:
+        Fire(CommandLine().cmdloop)
+    except KeyboardInterrupt:
+        print('Exit')
