@@ -20,7 +20,10 @@ class CommandLine(Cmd):
     def __init__(self):
         super().__init__()
         import pkgutil
-        self._modules = [name for _,name,_ in pkgutil.iter_modules(['modules'])]
+        prefix_len = len('modules.')
+        self._modules = [name[prefix_len:] for _, name, is_p in pkgutil.walk_packages(
+            ['modules'], prefix='modules.', onerror=lambda x: None
+        ) if not is_p]
         self._module = None
         info('Available modules:', ', '.join(self._modules))
 
@@ -81,8 +84,10 @@ def main():
     ]
 
     CommandLine().cmdloop(
-        '%s\n%s\n' % (
-            BANNER, sample(GREETINGS, 1)[0]
+        '%s\n%s\n%s\n' % (
+            BANNER,
+            sample(GREETINGS, 1)[0],
+            '='*40,
         )
     )
 
