@@ -1,11 +1,11 @@
-import os
 from pathlib import Path
-from lib.net import Connection, RTSPConnection, Response
+
+from lib.files import BRUTE_DIR, FUZZ_DIR
+from lib.net import Connection, Response
 from lib.utils import random_lowercase_alpha
 
-DATA_PATH = Path(os.path.dirname(__file__)).parent / 'data'
-PATHS_FILE = DATA_PATH / 'rtsp_paths.txt'
-CREDS_FILE = DATA_PATH / 'rtsp_creds.txt'
+PATHS_FILE = FUZZ_DIR / 'rtsp.txt'
+CREDS_FILE = BRUTE_DIR / 'rtsp.txt'
 
 
 class ListFile(list):

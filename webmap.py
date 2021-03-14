@@ -7,6 +7,7 @@ from fire import Fire
 import requests
 
 from lib.colors import *
+from lib.files import FUZZ_DIR
 from lib.http import iri_to_uri
 from lib.progress import Progress
 from lib.scan import get_domains_from_cert
@@ -29,9 +30,9 @@ BANNER = r"""
 # file, allow_html
 
 FUZZ_FILES = [
-    ('data/web_fw_paths.txt', True),
-    ('data/web_fuzz.txt', False),
-    ('data/web_dir_fuzz.txt', True),
+    (str(FUZZ_DIR / 'web_fw.txt'), True),
+    (str(FUZZ_DIR / 'web.txt'), False),
+    (str(FUZZ_DIR / 'web_dir.txt'), True),
 ]
 
 with open('data/web_headers.txt') as f:

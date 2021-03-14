@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Find potentially vulnerable hosts on http 80 over all Internet"""
-import os
 
 from fire import Fire
 
+from lib.files import FUZZ_DIR
 from lib.net import HTTPConnection
 from lib.scan import generate_ips, process_each
 from lib.utils import random_lowercase_alpha
@@ -11,9 +11,8 @@ from lib.utils import random_lowercase_alpha
 
 FAKE_PATH = '/%s' % random_lowercase_alpha(3, 8)
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-VULNS_FILE = os.path.join(DIR, 'data', 'web_potential_vuln.txt')
-VULNS = [ln.rstrip() for ln in open(VULNS_FILE)]
+VULNS_FILE = FUZZ_DIR / 'web_potential_vuln.txt'
+VULNS = [ln.rstrip() for ln in VULNS_FILE.open()]
 
 
 def check_ip(ip: str, pl, interface, verbose):
