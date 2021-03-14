@@ -75,7 +75,10 @@ class CommandLine(Cmd):
             self.prompt = 'h4ck.%s> ' % module
 
     def complete_use(self, text, line, si, ei):
-        completions = self._modules
+        if text:
+            completions = [mod for mod in self._modules if mod.startswith(text)]
+        else:
+            completions = self._modules[:]
         return completions
 
     def preloop(self):
