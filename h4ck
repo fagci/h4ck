@@ -23,14 +23,27 @@ class CommandLine(Cmd):
     def __init__(self):
         super().__init__()
         import pkgutil
+
+        self._module = None
         self._histfile = LOCAL_DIR / 'histfile.txt'
         self._histfile_size = 1000
+
         prefix_len = len('modules.')
         self._modules = [name[prefix_len:] for _, name, is_p in pkgutil.walk_packages(
-            ['modules'], prefix='modules.', onerror=lambda x: None
+            ['modules'], prefix='modules.', onerror=lambda _: None
         ) if not is_p]
-        self._module = None
+
         info('Available modules:', ', '.join(self._modules))
+
+    @staticmethod
+    def print_exceptions(fn):
+        def wr(*args, **kwargs):
+            try:
+                fn(*args, *kwargs)
+            except Exception as e:
+                err(repr(e))
+
+        return wr
 
     @staticmethod
     def methods(module):
@@ -50,29 +63,36 @@ class CommandLine(Cmd):
 
     def do_use(self, module):
         from importlib import import_module
+
         self.do_unload()
+
         try:
             self._module = import_module('modules.%s' % module)
-            methods = []
-            for m_name, method in self.methods(self._module):
-                if m_name.startswith('_'):
-                    continue
-                methods.append(m_name)
-                setattr(self, 'do_%s' % m_name, method)
-                setattr(self, 'help_%s' % m_name, lambda: print(method.__doc__))
-            info('Methods:', ', '.join(methods))
         except ModuleNotFoundError:
             err('Module', module, 'not found')
         except Exception as e:
             err(repr(e))
         else:
+            methods = []
+
+            for m_name, method in self.methods(self._module):
+                if m_name.startswith('_'):
+                    continue
+
+                methods.append(m_name)
+                setattr(self, 'do_%s' % m_name, self.print_exceptions(method))
+                setattr(self, 'help_%s' % m_name, lambda: print(method.__doc__))
+
+            info('Methods:', ', '.join(methods))
+
             self.prompt = 'h4ck.%s> ' % module
 
-    def complete_use(self, text, line, si, ei):
+    def complete_use(self, text, *_):
         if text:
             completions = [mod for mod in self._modules if mod.startswith(text)]
         else:
             completions = self._modules[:]
+
         return completions
 
     def preloop(self):
