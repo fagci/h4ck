@@ -1,25 +1,30 @@
 #!/usr/bin/env python3
 
 from cmd import Cmd
+import readline
 
 from fire import Fire
 
 from lib.colors import *
+from lib.files import LOCAL_DIR
 
 BANNER = r"""
  _     _  _        _
 | |__ | || |   ___| | __
 | '_ \| || |_ / __| |/ /
 | | | |__   _| (__|   <
-|_| |_|  |_|  \___|_|\_\ """
+|_| |_|  |_|  \___|_|\_\
+"""
 
 class CommandLine(Cmd):
     prompt = 'h4ck> '
-    __slots__ = ('_modules', '_module')
+    __slots__ = ('_modules', '_module', '_histfile', '_histfile_size')
 
     def __init__(self):
         super().__init__()
         import pkgutil
+        self._histfile = LOCAL_DIR / 'histfile.txt'
+        self._histfile_size = 1000
         prefix_len = len('modules.')
         self._modules = [name[prefix_len:] for _, name, is_p in pkgutil.walk_packages(
             ['modules'], prefix='modules.', onerror=lambda x: None
@@ -28,10 +33,10 @@ class CommandLine(Cmd):
         info('Available modules:', ', '.join(self._modules))
 
     def do_quit(self, _):
-        raise KeyboardInterrupt
+        return True
 
     def do_q(self, _):
-        self.do_quit(_)
+        return True
 
     @staticmethod
     def methods(module):
@@ -73,6 +78,15 @@ class CommandLine(Cmd):
         completions = self._modules
         return completions
 
+    def preloop(self):
+        if self._histfile.exists():
+            readline.read_history_file(str(self._histfile))
+
+    def postloop(self):
+        readline.set_history_length(self._histfile_size)
+        readline.write_history_file(str(self._histfile))
+        print('Bye')
+
 
 def main():
     from random import sample
@@ -87,16 +101,17 @@ def main():
         'All your base are belong to us!',
     ]
 
-    CommandLine().cmdloop(
-        '%s\n%s\n%s\n' % (
-            BANNER,
-            sample(GREETINGS, 1)[0],
-            '='*40,
+    cmdline = CommandLine()
+    try:
+        cmdline.cmdloop(
+            '%s\n%s\n%s\n' % (
+                BANNER,
+                sample(GREETINGS, 1)[0],
+                '='*40,
+            )
         )
-    )
+    except KeyboardInterrupt:
+        cmdline.postloop()
 
 if __name__ == "__main__":
-    try:
-        Fire(main)
-    except KeyboardInterrupt:
-        print('Exit')
+    Fire(main)
