@@ -127,6 +127,32 @@ def check_techs(_, r):
 
 
 @interruptable
+def check_robots(url, _):
+    """Check robots.txt"""
+    urls = []
+    try:
+        r = session.get('%s/robots.txt' % url, timeout=5, allow_redirects=False,
+                        verify=False, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
+        if r.status_code == 200:
+            if 'Disallow' in r.text:
+                for ln in r.text.splitlines():
+                    if 'Disallow' in ln:
+                        _, url = ln.split(None, 2)
+                        urls.append(url.strip())
+            if urls:
+                found('Disallowed:', ', '.join(urls))
+            else:
+                nfound('No disallowed found')
+
+            return
+    except Exception as e:
+        print(end='\r')
+        err(repr(e))
+
+    nfound('Get robots.txt failed')
+
+
+@interruptable
 def check_vulns(url, _):
     """Check vulns"""
     from functools import partial
@@ -165,6 +191,7 @@ def main(url):
         check_headers,
         check_cms,
         check_techs,
+        check_robots,
         check_vulns,
     ]
 
