@@ -56,7 +56,8 @@ def check_path(allow_html: bool, url: str):
             if r.status_code == 200:
                 return True, url, len(r.content)
     except requests.ConnectionError as e:
-        print('\r%s' % ERR, repr(e))
+        print(end='\r')
+        err(repr(e))
     except:
         pass
     return False, url, 0
@@ -75,11 +76,11 @@ def check_domains(url, _):
         port = port if port and port != 80 else 443
         linked_domains = get_domains_from_cert(hostname, port)
         if linked_domains:
-            print(FOUND, 'Domains:', ', '.join(linked_domains))
+            found('Domains:', ', '.join(linked_domains))
         else:
-            print(NFOUND, 'No domains found')
+            nfound('No domains found')
     except Exception as e:
-        print(NFOUND, 'Failed:', repr(e))
+        nfound('Failed:', repr(e))
 
 
 @interruptable
@@ -97,13 +98,12 @@ def check_headers(_, r):
 
     for hk, hv in h.items():
         if hk in HEADER_LIST:
-            print(f'{CYELLOW}{hk}: {hv}{CEND}')
+            info('%s: %s' % (hk, hv))
 
     if vulns:
-        print(INFO, 'Client side vulns:')
-        print(', '.join(v[0] for v in vulns))
+        found('Client side vulns:', ', '.join(v[0] for v in vulns))
     else:
-        print(INFO, 'No client side vulns')
+        nfound('No client side vulns')
 
 
 @interruptable
@@ -111,9 +111,9 @@ def check_cms(_, r):
     """Check CMS"""
     cmses = list(check_src(r.text, CMS_LIST))
     if cmses:
-        print(FOUND, ', '.join(c for c in cmses))
+        found(', '.join(c for c in cmses))
     else:
-        print(NFOUND, 'No CMS found in source')
+        nfound('No CMS found in source')
 
 
 @interruptable
@@ -121,9 +121,9 @@ def check_techs(_, r):
     """Check techs"""
     techs = list(check_src(r.text, TECH_LIST))
     if techs:
-        print(FOUND, ', '.join(t for t in techs))
+        found(', '.join(t for t in techs))
     else:
-        print(NFOUND, 'No tech found')
+        nfound('No tech found')
 
 
 @interruptable
@@ -136,27 +136,28 @@ def check_vulns(url, _):
 
     for file, allow_html in FUZZ_FILES:
 
-        print(f'[{tim()}]{PROCESS} Fuzz {file}...')
+        process(tim(), 'Fuzz', file)
 
         with open(file) as f:
             progress = Progress(sum(1 for _ in f))
             f.seek(0)
 
-            ff = (f'{url}{ln.rstrip()}' for ln in f)
+            ff = ('%s%s' % (url, ln.rstrip()) for ln in f)
             check = partial(check_path, allow_html)
 
             with ThreadPoolExecutor() as ex:
                 for r, rurl, cl in ex.map(check, ff):
                     path = rurl[urlen:]
                     if r:
-                        print(f'\r[{tim()}]{FOUND} ({cl}) {path}')
+                        print(end='\r')
+                        found(tim(), '(%s)' % cl, path)
                     progress(path)
 
 
 def main(url):
     print('='*42)
     print(BANNER.strip())
-    print(f'Target: {url}')
+    print('Target:', url)
     print('='*42)
 
     tasks = [
@@ -176,7 +177,8 @@ def main(url):
         exit(e.errno)
 
     for task in tasks:
-        print(f'\n{task.__doc__}')
+        print()
+        process(task.__doc__)
         task(url, initial_response)
 
 
