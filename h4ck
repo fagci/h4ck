@@ -4,14 +4,29 @@ from cmd import Cmd
 
 from fire import Fire
 
+
+BANNER = r"""
+ _     _  _        _
+| |__ | || |   ___| | __
+| '_ \| || |_ / __| |/ /
+| | | |__   _| (__|   <
+|_| |_|  |_|  \___|_|\_\
+"""
+
 class CommandLine(Cmd):
     prompt = 'h4ck> '
 
     def do_quit(self, _):
         raise KeyboardInterrupt
 
+    def do_q(self, _):
+        self.do_quit(_)
+
+def main():
+    CommandLine().cmdloop(BANNER)
+
 if __name__ == "__main__":
     try:
-        Fire(CommandLine().cmdloop)
+        Fire(main)
     except KeyboardInterrupt:
         print('Exit')
