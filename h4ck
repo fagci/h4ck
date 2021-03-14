@@ -11,8 +11,7 @@ BANNER = r"""
 | |__ | || |   ___| | __
 | '_ \| || |_ / __| |/ /
 | | | |__   _| (__|   <
-|_| |_|  |_|  \___|_|\_\
-"""
+|_| |_|  |_|  \___|_|\_\ """
 
 class CommandLine(Cmd):
     prompt = 'h4ck> '
@@ -23,9 +22,7 @@ class CommandLine(Cmd):
         import pkgutil
         self._modules = [name for _,name,_ in pkgutil.iter_modules(['modules'])]
         self._module = None
-        for m in self._modules:
-            info(m)
-
+        info('Available modules:', ', '.join(self._modules))
 
     def do_quit(self, _):
         raise KeyboardInterrupt
@@ -41,25 +38,29 @@ class CommandLine(Cmd):
     def get_names(self):
         return dir(self)
 
-    def do_use(self, module):
-        process('Loading', module)
-        from importlib import import_module
+    def do_unload(self):
         if self._module:
-            for m_name, method in self.methods(self._module):
+            for m_name, _ in self.methods(self._module):
                 delattr(self, 'do_%s' % m_name)
                 delattr(self, 'help_%s' % m_name)
+
+    def do_use(self, module):
+        from importlib import import_module
+        self.do_unload()
         try:
             self._module = import_module('modules.%s' % module)
+            methods = []
             for m_name, method in self.methods(self._module):
-                found(m_name)
+                methods.append(m_name)
                 setattr(self, 'do_%s' % m_name, method)
                 setattr(self, 'help_%s' % m_name, lambda: print(method.__doc__))
-        except ModuleNotFoundError as e:
-            err('Module', e.name[len('modules.'):], 'not found')
+            info('Methods:', ', '.join(methods))
+        except ModuleNotFoundError:
+            err('Module', module, 'not found')
         except Exception as e:
             err(repr(e))
         else:
-            info(module, 'loaded')
+            self.prompt = 'h4ck.%s> ' % module
 
     def complete_use(self, text, line, si, ei):
         completions = self._modules
@@ -67,7 +68,23 @@ class CommandLine(Cmd):
 
 
 def main():
-    CommandLine().cmdloop(BANNER)
+    from random import sample
+
+    GREETINGS = [
+        'Wh0a!',
+        'Pwn3d',
+        '1337',
+        'Psst, do u want some exploits?',
+        'P0w3r!',
+        'I\'m in.',
+        'All your base are belong to us!',
+    ]
+
+    CommandLine().cmdloop(
+        '%s\n%s\n' % (
+            BANNER, sample(GREETINGS, 1)[0]
+        )
+    )
 
 if __name__ == "__main__":
     try:
