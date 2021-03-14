@@ -110,7 +110,7 @@ def main():
     cmdline = CommandLine()
     try:
         cmdline.cmdloop(
-            '%s\n%s\n%s\n' % (
+            '%s\n%s\n%s\n!!! Demo version !!!\n' % (
                 BANNER,
                 sample(GREETINGS, 1)[0],
                 '='*40,
