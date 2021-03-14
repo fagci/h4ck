@@ -3,22 +3,14 @@
 
 from urllib.parse import urlparse
 
-import colorama
 from fire import Fire
 import requests
 
+from lib.colors import *
 from lib.http import iri_to_uri
 from lib.progress import Progress
 from lib.scan import get_domains_from_cert
 from lib.utils import interruptable, tim
-
-CF = colorama.Fore
-CRED = CF.RED
-CGREEN = CF.GREEN
-CYELLOW = CF.YELLOW
-CGREY = CF.WHITE
-CDGREY = CF.LIGHTBLACK_EX
-CEND = CF.RESET
 
 BANNER = r"""
 %s__      _____| |__  _ __ ___   __ _ _ __
@@ -62,9 +54,9 @@ def check_path(allow_html: bool, url: str):
                         verify=False, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
         if allow_html or r.headers.get('Content-Type') != 'text/html':
             if r.status_code == 200:
-                return True, url, r.headers.get('Content-Length')
+                return True, url, len(r.content)
     except requests.ConnectionError as e:
-        print(f'{CRED}[!!]', e, CEND)
+        print('\r%s' % ERR, repr(e))
     except:
         pass
     return False, url, 0
@@ -83,11 +75,11 @@ def check_domains(url, _):
         port = port if port and port != 80 else 443
         linked_domains = get_domains_from_cert(hostname, port)
         if linked_domains:
-            print('%s[+] Domains:' % CYELLOW, ', '.join(linked_domains), CEND)
+            print(FOUND, 'Domains:', ', '.join(linked_domains))
         else:
-            print('%s[-] no domains found' % CDGREY, CEND)
+            print(NFOUND, 'No domains found')
     except Exception as e:
-        print('%s[-] Failed:' % CDGREY, repr(e), CEND)
+        print(NFOUND, 'Failed:', repr(e))
 
 
 @interruptable
@@ -108,10 +100,10 @@ def check_headers(_, r):
             print(f'{CYELLOW}{hk}: {hv}{CEND}')
 
     if vulns:
-        print(f'{CDGREY}[i] Client side vulns:')
-        print(f'{", ".join(v[0] for v in vulns)}{CEND}')
+        print(INFO, 'Client side vulns:')
+        print(', '.join(v[0] for v in vulns))
     else:
-        print(f'{CDGREY}[i] No client side vulns{CEND}')
+        print(INFO, 'No client side vulns')
 
 
 @interruptable
@@ -119,9 +111,9 @@ def check_cms(_, r):
     """Check CMS"""
     cmses = list(check_src(r.text, CMS_LIST))
     if cmses:
-        print(f'{CYELLOW}{", ".join(c for c in cmses)}{CEND}')
+        print(FOUND, ', '.join(c for c in cmses))
     else:
-        print(f'{CGREY}[-] No CMS found in source{CEND}')
+        print(NFOUND, 'No CMS found in source')
 
 
 @interruptable
@@ -129,9 +121,9 @@ def check_techs(_, r):
     """Check techs"""
     techs = list(check_src(r.text, TECH_LIST))
     if techs:
-        print(f'{CYELLOW}{", ".join(t for t in techs)}{CEND}')
+        print(FOUND, ', '.join(t for t in techs))
     else:
-        print(f'{CGREY}[-] No tech found{CEND}')
+        print(NFOUND, 'No tech found')
 
 
 @interruptable
@@ -144,7 +136,7 @@ def check_vulns(url, _):
 
     for file, allow_html in FUZZ_FILES:
 
-        print(f'[{tim()}][*] Fuzz {file}...')
+        print(f'[{tim()}]{PROCESS} Fuzz {file}...')
 
         with open(file) as f:
             progress = Progress(sum(1 for _ in f))
@@ -157,7 +149,7 @@ def check_vulns(url, _):
                 for r, rurl, cl in ex.map(check, ff):
                     path = rurl[urlen:]
                     if r:
-                        print(f'\r[{tim()}]{CGREEN}[+] ({cl}) {path}{CEND}')
+                        print(f'\r[{tim()}]{FOUND} ({cl}) {path}')
                     progress(path)
 
 
@@ -180,7 +172,7 @@ def main(url):
     try:
         initial_response = requests.get(url, timeout=5, verify=False)
     except requests.ConnectionError as e:
-        print(f'{CRED}[!!]', e, CEND)
+        print(ERR, e, CEND)
         exit(e.errno)
 
     for task in tasks:
