@@ -4,6 +4,18 @@ from socket import timeout as SocketTimeout
 from time import sleep, time
 from typing import Optional
 
+from lib.files import LOCAL_DIR
+
+UA_FILE_PATH = LOCAL_DIR / '.useragent'
+
+local_ua = None
+
+if UA_FILE_PATH.exists():
+    with UA_FILE_PATH.open() as f:
+        local_ua = f.readline().strip()
+
+DEFAULT_UA = local_ua or 'Mozilla/5.0'
+
 logger = logging.getLogger('lib.connection')
 logger.setLevel(logging.CRITICAL)
 
@@ -128,7 +140,7 @@ class Connection:
     __slots__ = ('_host', '_port', '_iface', '_connection_timeout',
                  '_query_timeout', '_user_agent')
 
-    def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
+    def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5, ua: str = DEFAULT_UA):
         self._host = host
         self._port = port
         self._iface = interface
@@ -213,7 +225,7 @@ class RTSPConnection(Connection):
 
     _cseqs = dict()
 
-    def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = 'Mozilla/5.0'):
+    def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = DEFAULT_UA):
         super().__init__(host, port, interface=interface,
                          timeout=timeout, query_timeout=query_timeout, ua=ua)
 
