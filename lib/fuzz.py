@@ -15,41 +15,6 @@ class ListFile(list):
             self.extend(ln.rstrip() for ln in f)
 
 
-class DictLoader:
-    __slots__ = ('_dictionary', '_file_handler', '_items')
-
-    def __init__(self, dictionary):
-        self._dictionary = dictionary
-
-    def __enter__(self):
-        d = self._dictionary
-        if isinstance(d, str):
-            if '\n' in d:
-                items = d.splitlines()
-            else:
-                self._file_handler = open(d)
-                items = (ln.rstrip() for ln in self._file_handler)
-        else:
-            items = d
-
-        self._items = iter(items)
-
-        return self
-
-    def __exit__(self, e_type, e_msg, e_trace):
-        if self._file_handler:
-            self._file_handler.close()
-            self._file_handler = None
-        self._items = None
-        return e_type is None
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return self._items.__next__()
-
-
 class Brute:
     _connection = None
     _dictionary = []
@@ -98,16 +63,13 @@ class Fuzz:
             fp = Fuzz._fake_path = '/%s' % random_lowercase_alpha(3, 8)
             Fuzz._dictionary = [fp] + (dictionary or ListFile(PATHS_FILE))
 
-    def check(self, path: str = '') -> Response:
-        return self._connection.get(path)
-
     def __iter__(self):
         response = self._connection.query()
         if not response.ok:
             return
 
         for path in self._dictionary:
-            response = self.check(path)
+            response = self._connection.get(path)
 
             if response.error:
                 return

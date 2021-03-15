@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+
 from fire import Fire
 
 from lib.fuzz import Brute, Fuzz, ListFile
