@@ -9,15 +9,14 @@ from lib.colors import *
 from lib.files import LOCAL_DIR
 
 BANNER = r"""
- _     _  _        _
-| |__ | || |   ___| | __
-| '_ \| || |_ / __| |/ /
-| | | |__   _| (__|   <
-|_| |_|  |_|  \___|_|\_\
-"""
+%s _     _  _        _
+%s| |__ | || |   ___| | __
+%s| '_ \| || |_ / __| |/ /
+%s| | | |__   _| (__|   <
+%s|_| |_|  |_|  \___|_|\_\
+%s""" % (CLYELLOW, CLYELLOW, CYELLOW, CYELLOW, CDGREY, CEND)
 
 class CommandLine(Cmd):
-    prompt = 'h4ck> '
     __slots__ = ('_modules', '_module', '_histfile', '_histfile_size')
 
     def __init__(self):
@@ -34,6 +33,7 @@ class CommandLine(Cmd):
         ) if not is_p]
 
         info('Available modules:', ', '.join(self._modules))
+        self.do_unload()
 
     @staticmethod
     def print_exceptions(fn):
@@ -55,11 +55,13 @@ class CommandLine(Cmd):
 
     def do_unload(self):
         if self._module:
-            for m_name, _ in self.methods(self._module):
-                if m_name.startswith('_'):
+            for m_name, method in self.methods(self._module):
+                if m_name.startswith('_') or not method.__doc__:
                     continue
                 delattr(self, 'do_%s' % m_name)
                 delattr(self, 'help_%s' % m_name)
+
+        self.prompt = '%sh4ck%s> ' % (CYELLOW, CEND)
 
     def do_use(self, module):
         from importlib import import_module
@@ -76,7 +78,7 @@ class CommandLine(Cmd):
             methods = []
 
             for m_name, method in self.methods(self._module):
-                if m_name.startswith('_'):
+                if m_name.startswith('_') or not method.__doc__:
                     continue
 
                 methods.append(m_name)
@@ -85,7 +87,8 @@ class CommandLine(Cmd):
 
             info('Methods:', ', '.join(methods))
 
-            self.prompt = 'h4ck.%s> ' % module
+            self.prompt = '%sh4ck%s.%s%s%s> ' % (CYELLOW, CEND, CLYELLOW, module, CEND)
+
 
     def complete_use(self, text, *_):
         if text:
@@ -103,6 +106,9 @@ class CommandLine(Cmd):
         readline.set_history_length(self._histfile_size)
         readline.write_history_file(str(self._histfile))
         print('Bye')
+
+    def do_exit(self, _):
+        return True
 
     def do_quit(self, _):
         return True
@@ -127,15 +133,21 @@ def main():
         'All your base are belong to us!',
     ]
 
+    intro = (
+        '%s\n'
+        '%s%s\n'
+        '%s%s%s\n'
+        '!!! Demo version !!!\n'
+    ) % (
+        BANNER,
+        CYELLOW, sample(GREETINGS, 1)[0],
+        CDGREY, '='*40, CEND
+    )
+
     cmdline = CommandLine()
+
     try:
-        cmdline.cmdloop(
-            '%s\n%s\n%s\n!!! Demo version !!!\n' % (
-                BANNER,
-                sample(GREETINGS, 1)[0],
-                '='*40,
-            )
-        )
+        cmdline.cmdloop(intro)
     except KeyboardInterrupt:
         cmdline.postloop()
 

@@ -7,6 +7,8 @@ from lib.fuzz import Brute, Fuzz, ListFile
 from lib.net import RTSPConnection, logger
 from lib.scan import process_threaded
 
+__all__ = ('brute', 'brute_host')
+
 
 def process_host(interface, host):
     with RTSPConnection(host, 554, interface) as connection:
@@ -22,7 +24,13 @@ def process_host(interface, host):
                 break
 
 
+def brute_host(host):
+    """Brute single host"""
+    print(process_host('', host))
+
+
 def brute(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool = False):
+    """Brute multiple hosts"""
     from functools import partial
 
     if d:
