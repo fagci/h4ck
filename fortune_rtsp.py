@@ -10,8 +10,6 @@ from lib.net import RTSPConnection
 counter = 0
 max_count = 1024
 
-REQ = b'OPTIONS * RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: Mozilla/5.0\r\nAccept: application/sdp\r\n\r\n'
-
 
 def check(ip, pl, out, p, t, i):
     global counter
