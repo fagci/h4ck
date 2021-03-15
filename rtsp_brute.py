@@ -34,10 +34,9 @@ def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool =
 
     ph = partial(process_host, i)
 
-    urls = process_threaded(ph, hosts, callback=lambda x: bool(x), workers=w)
+    urls = process_threaded(ph, hosts, callback=bool, workers=w)
 
-    for url in urls:
-        print(url)
+    print(*urls, sep='\n')
 
 
 if __name__ == "__main__":
