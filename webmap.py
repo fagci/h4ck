@@ -7,7 +7,7 @@ from fire import Fire
 import requests
 
 from lib.colors import *
-from lib.files import FUZZ_DIR
+from lib.files import DATA_DIR, FUZZ_DIR
 from lib.http import iri_to_uri
 from lib.progress import Progress
 from lib.scan import get_domains_from_cert
@@ -35,13 +35,13 @@ FUZZ_FILES = [
     (str(FUZZ_DIR / 'web_dir.txt'), True),
 ]
 
-with open('data/web_headers.txt') as f:
+with (DATA_DIR / 'web_headers.txt').open() as f:
     HEADER_LIST = [p.rstrip() for p in f]
 
-with open('data/web_cms.txt') as f:
+with (DATA_DIR / 'web_cms.txt').open() as f:
     CMS_LIST = [p.rstrip() for p in f]
 
-with open('data/web_tech.txt') as f:
+with (DATA_DIR / 'web_tech.txt').open() as f:
     TECH_LIST = [p.rstrip() for p in f]
 
 
