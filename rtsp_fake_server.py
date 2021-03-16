@@ -6,6 +6,8 @@ from lib.files import LOCAL_DIR
 
 class TCPHandler(BaseRequestHandler):
     def handle(self):
+        client_ip = self.client_address
+
         while True:
             try:
                 data = self.request.recv(1024).decode().strip()
@@ -27,7 +29,7 @@ class TCPHandler(BaseRequestHandler):
                     return
 
                 with (LOCAL_DIR / 'rtsp_honey.log').open('a') as f:
-                    f.write('%s\n' % path)
+                    f.write('%s %s\n' % (client_ip, path))
 
                 cseq = 1
 
