@@ -6,7 +6,7 @@ from lib.files import LOCAL_DIR
 
 class TCPHandler(BaseRequestHandler):
     def handle(self):
-        client_ip = self.client_address
+        client_ip, _ = self.client_address
 
         while True:
             try:
