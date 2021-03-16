@@ -7,38 +7,29 @@ from bs4 import BeautifulSoup
 from fire import Fire
 from requests import get
 
-from lib.scan import process_threaded
+from lib.scan import threaded
 
 
-def test(host):
-    # print(host)
-    try:
-        s = BeautifulSoup(get('http://%s' % host).text, 'lxml')
-        title = s.title
-        if title and not title.text:
-            title = s.find('h1')
-        if title:
-            return '[+] %s:%d %s' % (host, 80, title.text)
-    except:
-        pass
+def test(host, port=80):
+    url = 'http%s://%s' % ('s' if port == 443 else '', host)
 
     try:
-        s = BeautifulSoup(get('https://%s' % host).text, 'lxml')
+        s = BeautifulSoup(get(url).text, 'lxml')
         title = s.title
+
         if title and not title.text:
             title = s.find('h1')
+
         if title:
             return '[+] %s:%d %s' % (host, 80, title.text)
+
     except:
         pass
 
 
 def main(network: str, w: int = None):
-    hosts = list(ip_network(network).hosts())
-    results = process_threaded(test, hosts, workers=w)
-    for result in results:
-        if result:
-            print(result)
+    ips = list(ip_network(network).hosts())
+    print(*filter(bool, threaded(test, ips, workers=w)), sep='\n')
 
 
 if __name__ == "__main__":

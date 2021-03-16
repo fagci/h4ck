@@ -6,7 +6,7 @@ from fire import Fire
 
 from lib.fuzz import Brute, Fuzz, ListFile
 from lib.net import RTSPConnection, logger
-from lib.scan import process_threaded
+from lib.scan import threaded
 
 
 def process_host(interface, host):
@@ -35,7 +35,7 @@ def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool =
 
     ph = partial(process_host, i)
 
-    urls = process_threaded(ph, hosts, callback=bool, workers=w)
+    urls = threaded(ph, hosts, callback=bool, workers=w)
 
     print(*urls, sep='\n')
 
