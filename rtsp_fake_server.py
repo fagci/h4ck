@@ -1,7 +1,22 @@
 #!/usr/bin/env python3
+"""Serve RTSP dummy on 554 by default, log paths to file"""
 from socketserver import BaseRequestHandler, ThreadingTCPServer
+
 from fire import Fire
+
 from lib.files import LOCAL_DIR
+
+LOG_FILE = LOCAL_DIR / 'rtsp_honey.log'
+
+
+RESP_TPL = (
+    'RTSP/1.0 %s %s\r\n'
+    'CSeq: %s\r\n'
+    '%s'
+    '\r\n'
+)
+
+OPTIONS_LINE = 'Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n'
 
 
 class TCPHandler(BaseRequestHandler):
@@ -11,12 +26,6 @@ class TCPHandler(BaseRequestHandler):
         while True:
             try:
                 data = self.request.recv(1024).decode().strip()
-                resp = (
-                    'RTSP/1.0 %s %s\r\n'
-                    'CSeq: %s\r\n'
-                    '%s'
-                    '\r\n'
-                )
 
                 lines = data.splitlines()
                 if not lines:
@@ -28,7 +37,7 @@ class TCPHandler(BaseRequestHandler):
                     print('Bad proto', proto)
                     return
 
-                with (LOCAL_DIR / 'rtsp_honey.log').open('a') as f:
+                with LOG_FILE.open('a') as f:
                     f.write('%s %s\n' % (client_ip, path))
 
                 cseq = 1
@@ -37,13 +46,9 @@ class TCPHandler(BaseRequestHandler):
                     _, cseq = lines[1].split(None, 1)
 
                 if method == 'OPTIONS':
-                    resp = resp % (
-                        200, 'OK',
-                        cseq,
-                        'Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n',
-                    )
+                    resp = RESP_TPL % (200, 'OK', cseq, OPTIONS_LINE)
                 else:
-                    resp = resp % (404, 'Not found', cseq, '')
+                    resp = RESP_TPL % (404, 'Not found', cseq, '')
 
                 self.request.sendall(resp.encode())
 
