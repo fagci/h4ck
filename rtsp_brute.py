@@ -10,17 +10,21 @@ from lib.scan import threaded
 
 
 def process_host(interface, host):
-    with RTSPConnection(host, 554, interface) as connection:
-        for fuzz_result in Fuzz(connection):
-            existing_path = fuzz_result.path
+    try:
+        with RTSPConnection(host, 554, interface) as connection:
+            for fuzz_result in Fuzz(connection):
+                existing_path = fuzz_result.path
 
-            if fuzz_result.ok:
-                return connection.url(existing_path)
+                if fuzz_result.ok:
+                    return connection.url(existing_path)
 
-            if fuzz_result.auth_needed:
-                for cred in Brute(connection, existing_path):
-                    return connection.url(existing_path, cred)
-                break
+                if fuzz_result.auth_needed:
+                    for cred in Brute(connection, existing_path):
+                        return connection.url(existing_path, cred)
+                    break
+    except KeyboardInterrupt:
+        print('ki')
+        return False
 
 
 def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool = False):

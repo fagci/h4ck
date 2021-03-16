@@ -290,6 +290,8 @@ class RTSPConnection(Connection):
         except UnicodeDecodeError as e:
             logger.error(repr(e))
             err = e
+        except KeyboardInterrupt:
+            raise
         except Exception as e:
             logger.error(repr(e))
             err = e

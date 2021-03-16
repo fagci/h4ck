@@ -185,6 +185,9 @@ def threaded(fn: Callable, items: list, callback: Callable = lambda _: True, pro
 
             for future in as_completed(futures):
                 result = future.result()
+                if result is False:
+                    break
+
                 cb_result = callback(result)
 
                 if cb_result:
