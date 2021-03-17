@@ -8,7 +8,6 @@ from lib.files import LOCAL_DIR
 
 LOG_FILE = LOCAL_DIR / 'rtsp_honey.log'
 
-
 RESP_TPL = (
     'RTSP/1.0 %s %s\r\n'
     'CSeq: %s\r\n'
@@ -22,10 +21,11 @@ OPTIONS_LINE = 'Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n'
 class TCPHandler(BaseRequestHandler):
     def handle(self):
         client_ip, _ = self.client_address
+        request = self.request
 
         while True:
             try:
-                data = self.request.recv(1024).decode().strip()
+                data = request.recv(1024).decode().strip()
 
                 lines = data.splitlines()
                 if not lines:
@@ -35,6 +35,7 @@ class TCPHandler(BaseRequestHandler):
 
                 if not proto.startswith('RTSP'):
                     print('Bad proto', proto)
+                    self.finish()
                     return
 
                 with LOG_FILE.open('a') as f:
@@ -50,7 +51,7 @@ class TCPHandler(BaseRequestHandler):
                 else:
                     resp = RESP_TPL % (404, 'Not found', cseq, '')
 
-                self.request.sendall(resp.encode())
+                request.sendall(resp.encode())
 
             except KeyboardInterrupt:
                 self.server.shutdown()
