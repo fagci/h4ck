@@ -9,7 +9,7 @@ from lib.net import RTSPConnection, logger
 from lib.scan import threaded
 
 
-def process_host(interface, host):
+def process_host(interface, brute, host):
     try:
         with RTSPConnection(host, 554, interface) as connection:
             for fuzz_result in Fuzz(connection):
@@ -19,15 +19,16 @@ def process_host(interface, host):
                     return connection.url(existing_path)
 
                 if fuzz_result.auth_needed:
-                    for cred in Brute(connection, existing_path):
-                        return connection.url(existing_path, cred)
+                    if brute:
+                        for cred in Brute(connection, existing_path):
+                            return connection.url(existing_path, cred)
                     break
     except KeyboardInterrupt:
         print('ki')
         return False
 
 
-def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool = False):
+def main(hosts_file: str, brute: bool = False, w: int = None, i: str = '', sp: bool = True, d: bool = False):
     from functools import partial
 
     if d:
@@ -37,7 +38,7 @@ def main(hosts_file: str, w: int = None, i: str = '', sp: bool = True, d: bool =
 
     hosts = ListFile(hosts_file)
 
-    ph = partial(process_host, i)
+    ph = partial(process_host, i, brute)
 
     urls = threaded(ph, hosts, callback=bool, workers=w)
 
