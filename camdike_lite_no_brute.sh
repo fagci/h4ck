@@ -8,7 +8,7 @@ while true; do
     echo
     echo Brute
     ./rtsp_brute.py local/rtsp_554.txt \
-        -sp --brute > local/bruted.txt
+        -sp > local/bruted.txt
     cat local/bruted.txt >> local/rtsp.txt
 
     echo
