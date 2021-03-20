@@ -134,6 +134,8 @@ def check_contacts(_, r):
     regs = {
         'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-]+\.[\w]{1,5}',
         'phone': r'\+\d[-()\s\d]{5,}?(?=\s*[+<])',
+        'tel': r'tel:(\+?[^\'"]+)',
+        'mailto': r'mailto:(\+?[^\'"]+)',
     }
     contacts = defaultdict(set)
     for name, reg in regs.items():
