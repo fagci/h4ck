@@ -1,17 +1,21 @@
-/0/1:1/main
 /1
+/0/1:1/main
 /user=admin&password=&channel=1&stream=0.sdp?
+/live/h264
 /live
 /h264/ch1/sub/av_stream
 /stream1
+/live.sdp
+/image.mpg
 /axis-media/media.amp
-/live/h264
+/1/stream1
+/ch01.264
+/live1.sdp
 /stream.sdp
 /0/usrnm:pwd/main
 /0/video1
 /1.AMP
 /1/h264major
-/1/stream1
 /1080p
 /11
 /12
@@ -67,7 +71,6 @@
 /ch0
 /ch00/0
 /ch001.sdp
-/ch01.264
 /ch01.264?
 /ch01.264?ptype=tcp
 /ch0_0.h264
@@ -91,7 +94,6 @@
 /h264Preview_01_sub
 /h264_stream
 /h264_vga.sdp
-/image.mpg
 /img/media.sav
 /img/media.sav?channel=1
 /img/video.asf
@@ -100,7 +102,6 @@
 /ipcam.sdp
 /ipcam_h264.sdp
 /ipcam_mjpeg.sdp
-/live.sdp
 /live/av0
 /live/ch0
 /live/ch00_0
@@ -108,7 +109,6 @@
 /live/main
 /live/main0
 /live/mpeg4
-/live1.sdp
 /live3.sdp
 /live_mpeg4.sdp
 /live_st1
