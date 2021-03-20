@@ -124,6 +124,18 @@ def check_analytics(_, r: Response):
 
 
 @interruptable
+def check_contacts(_, r):
+    """Check contacts"""
+    regs = {
+        'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-\.]+[\w]{1,5}',
+        'phone': r'\+[-()\s\d]+?(?=\s*[+<])',
+    }
+    for name, reg in regs.items():
+        for m in re.findall(reg, r.text):
+            found(name, m)
+
+
+@interruptable
 def check_cms(_, r):
     """Check CMS"""
     cmses = list(check_src(r.text, CMS_LIST))
@@ -207,6 +219,7 @@ def main(url):
         check_domains,
         check_headers,
         check_analytics,
+        check_contacts,
         check_cms,
         check_techs,
         check_robots,
