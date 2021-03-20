@@ -40,7 +40,7 @@ def check_ip(ip: str, pl, interface, verbose):
                 if verbose:
                     print('{:<15}'.format(ip), len(vulns), ', '.join(vulns))
                 else:
-                    print('{:<15}'.format(ip), len(vulns))
+                    print(ip)
 
 
 def check_ips(c: int = 200000, w: int = 1024, i: str = '', v: bool = False):
