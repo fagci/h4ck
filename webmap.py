@@ -129,6 +129,25 @@ def check_analytics(_, r: Response):
 
 
 @interruptable
+def check_social(_, r):
+    """Check social"""
+    regs = {
+        'facebook': r'facebook\.com/([^"\'/]+)',
+        'github': r'github\.com/([^"\'/]+)',
+        'instagram': r'instagram\.com/([^"\'/]+)',
+        'ok': r'ok\.ru/([^"\'/]+)',
+        'telegram': r't\.me/([^"\'/]+)',
+        'twitter': r'twitter\.com/([^"\'/]+)',
+        'vk': r'vk\.com/([^"\'/]+)',
+        'youtube': r'youtube\.\w+?(/channel/[^"\']+)',
+    }
+    for name, reg in regs.items():
+        m = re.findall(reg, r.text, re.IGNORECASE)
+        if m:
+            found(name, m[0])
+
+
+@interruptable
 def check_contacts(_, r):
     """Check contacts"""
     regs = {
@@ -233,6 +252,7 @@ def main(url, nofuzz=False):
         check_headers,
         check_analytics,
         check_contacts,
+        check_social,
         check_cms,
         check_techs,
         check_robots,
