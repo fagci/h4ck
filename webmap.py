@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Scan web application for CMS, used techs, vulns"""
 
+import re
 from urllib.parse import urlparse
 
 from fire import Fire
 import requests
+from requests.models import Response
 
 from lib.colors import *
 from lib.files import DATA_DIR, FUZZ_DIR
@@ -108,6 +110,20 @@ def check_headers(_, r):
 
 
 @interruptable
+def check_analytics(_, r: Response):
+    """Check analytics"""
+    regs = {
+        'adsense': r'pub-\d+',
+        'analytics': r'ua-[0-9-]+',
+        'yandexMetrika': r'metrika.yandex[^\'"]+?id=(\d+)',
+    }
+    for name, reg in regs.items():
+        m = re.findall(reg, r.text, re.IGNORECASE)
+        if m:
+            found(name, m[0])
+
+
+@interruptable
 def check_cms(_, r):
     """Check CMS"""
     cmses = list(check_src(r.text, CMS_LIST))
@@ -190,6 +206,7 @@ def main(url):
     tasks = [
         check_domains,
         check_headers,
+        check_analytics,
         check_cms,
         check_techs,
         check_robots,
