@@ -132,10 +132,12 @@ def check_contacts(_, r):
     """Check contacts"""
     regs = {
         'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-]+\.[\w]{1,5}',
-        'phone': r'\+[-()\s\d]+?(?=\s*[+<])',
+        'phone': r'\+[-()\s\d]{5,}?(?=\s*[+<])',
     }
     for name, reg in regs.items():
         for m in re.findall(reg, r.text):
+            if m.endswith(('png', 'svg')):
+                continue
             found(name, m)
 
 
@@ -162,7 +164,7 @@ def check_techs(_, r):
 @interruptable
 def check_robots(url, _):
     """Check robots.txt"""
-    urls = []
+    urls = set()
     try:
         r = session.get('%s/robots.txt' % url, timeout=5, allow_redirects=False,
                         verify=False, stream=True, headers=headers)
@@ -171,7 +173,7 @@ def check_robots(url, _):
                 for ln in r.text.splitlines():
                     if 'Disallow' in ln:
                         _, url = ln.split(None, 2)
-                        urls.append(url.strip())
+                        urls.add(url.strip())
             if urls:
                 found('Disallowed:', ', '.join(urls))
             else:
