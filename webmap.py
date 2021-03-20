@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Scan web application for CMS, used techs, vulns"""
 
+from collections import defaultdict
 import re
 from urllib.parse import urlparse
 
@@ -116,10 +117,10 @@ def check_analytics(_, r: Response):
     regs = {
         'adsense': r'pub-\d+',
         'google': r'ua-[0-9-]+',
-        'googleTagManager': r'gtm-[^&\'"]+',
+        'googleTagManager': r'gtm-[^&\'"%]+',
         'mail.ru': r'top.mail.ru[^\'"]+from=(\d+)',
         'yandexMetrika': r'metrika.yandex[^\'"]+?id=(\d+)',
-        'vk': r'vk-[^"\']+'
+        'vk': r'vk-[^&"\'%]+'
     }
     for name, reg in regs.items():
         m = re.findall(reg, r.text, re.IGNORECASE)
@@ -132,13 +133,17 @@ def check_contacts(_, r):
     """Check contacts"""
     regs = {
         'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-]+\.[\w]{1,5}',
-        'phone': r'\+[-()\s\d]{5,}?(?=\s*[+<])',
+        'phone': r'\+\d[-()\s\d]{5,}?(?=\s*[+<])',
     }
+    contacts = defaultdict(set)
     for name, reg in regs.items():
         for m in re.findall(reg, r.text):
             if m.endswith(('png', 'svg')):
                 continue
-            found(name, m)
+            contacts[name].add(m)
+    for n, cc in contacts.items():
+        for c in cc:
+            found(n, c)
 
 
 @interruptable
