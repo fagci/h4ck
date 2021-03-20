@@ -3,11 +3,11 @@ admin:admin
 user:user
 admin:
 admin:admin123
+admin:123456
 ADMIN:1234
+admin:1234
 admin:1111
 root:pass
-admin:123456
-admin:1234
 admin:4321
 666666:666666
 888888:888888
