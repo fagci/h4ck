@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from functools import partial
 import logging
 
 from fire import Fire
@@ -29,8 +30,6 @@ def process_host(interface, brute, host):
 
 
 def main(hosts_file: str, brute: bool = False, w: int = None, i: str = '', sp: bool = True, d: bool = False):
-    from functools import partial
-
     if d:
         logger.setLevel(logging.DEBUG)
         h = logging.StreamHandler()
