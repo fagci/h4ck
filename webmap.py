@@ -48,13 +48,14 @@ with (DATA_DIR / 'web_tech.txt').open() as f:
 
 
 session = requests.Session()
+headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 @interruptable
 def check_path(allow_html: bool, url: str):
     try:
         r = session.get(url, timeout=5, allow_redirects=False,
-                        verify=False, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
+                        verify=False, stream=True, headers=headers)
         if allow_html or r.headers.get('Content-Type') != 'text/html':
             if r.status_code == 200:
                 return True, url, len(r.content)
@@ -114,8 +115,11 @@ def check_analytics(_, r: Response):
     """Check analytics"""
     regs = {
         'adsense': r'pub-\d+',
-        'analytics': r'ua-[0-9-]+',
+        'google': r'ua-[0-9-]+',
+        'googleTagManager': r'gtm-[^&\'"]+',
+        'mail.ru': r'top.mail.ru[^\'"]+from=(\d+)',
         'yandexMetrika': r'metrika.yandex[^\'"]+?id=(\d+)',
+        'vk': r'vk-[^"\']+'
     }
     for name, reg in regs.items():
         m = re.findall(reg, r.text, re.IGNORECASE)
@@ -127,7 +131,7 @@ def check_analytics(_, r: Response):
 def check_contacts(_, r):
     """Check contacts"""
     regs = {
-        'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-\.]+[\w]{1,5}',
+        'mail': r'[\w\-][\w\-\.]+@[\w\-][\w\-]+\.[\w]{1,5}',
         'phone': r'\+[-()\s\d]+?(?=\s*[+<])',
     }
     for name, reg in regs.items():
@@ -161,7 +165,7 @@ def check_robots(url, _):
     urls = []
     try:
         r = session.get('%s/robots.txt' % url, timeout=5, allow_redirects=False,
-                        verify=False, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
+                        verify=False, stream=True, headers=headers)
         if r.status_code == 200:
             if 'Disallow' in r.text:
                 for ln in r.text.splitlines():
@@ -209,7 +213,7 @@ def check_vulns(url, _):
                     progress(path)
 
 
-def main(url):
+def main(url, nofuzz=False):
     print('='*42)
     print(BANNER.strip())
     print('Target:', url)
@@ -223,13 +227,16 @@ def main(url):
         check_cms,
         check_techs,
         check_robots,
-        check_vulns,
     ]
+
+    if not nofuzz:
+        tasks.append(check_vulns)
 
     url = iri_to_uri(url)
 
     try:
-        initial_response = requests.get(url, timeout=5, verify=False)
+        initial_response = session.get(
+            url, timeout=10, verify=False, headers=headers)
     except requests.ConnectionError as e:
         print(ERR, e, CEND)
         exit(e.errno)
