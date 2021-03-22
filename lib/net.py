@@ -16,6 +16,13 @@ if UA_FILE_PATH.exists():
 
 DEFAULT_UA = local_ua or 'Mozilla/5.0'
 
+M_OPTIONS = 'OPTIONS'
+M_DESCRIBE = 'DESCRIBE'
+
+PROTO_RTSP_1 = 'RTSP/1.0'
+PROTO_HTTP_1 = 'HTTP/1.0'
+PROTO_HTTP_1_1 = 'HTTP/1.1'
+
 logger = logging.getLogger('lib.connection')
 logger.setLevel(logging.CRITICAL)
 
@@ -103,11 +110,7 @@ class Request(Packet):
     """Used to build request string"""
     __slots__ = ('method', 'url')
 
-    PROTO_RTSP_1 = 'RTSP/1.0'
-    PROTO_HTTP_1 = 'HTTP/1.0'
-    PROTO_HTTP_1_1 = 'HTTP/1.1'
-
-    def __init__(self, method: str = 'OPTIONS', url: str = '*', protocol: str = ''):
+    def __init__(self, method: str = M_OPTIONS, url: str = '*', protocol: str = ''):
         super().__init__()
         self.method = method
         self.url = url
@@ -138,7 +141,7 @@ class Request(Packet):
 
 class Connection:
     __slots__ = ('_host', '_port', '_iface', '_connection_timeout',
-                 '_query_timeout', '_user_agent')
+                 '_query_timeout', '_user_agent', '_c')
 
     def __init__(self, host, port, interface: str = '', timeout: float = 3, query_timeout: float = 5, ua: str = DEFAULT_UA):
         self._host = host
@@ -203,7 +206,7 @@ class HTTPConnection(Connection):
         if not connection:
             return Response()
 
-        request = Request('GET', url, Request.PROTO_HTTP_1_1)
+        request = Request('GET', url, PROTO_HTTP_1_1)
         request.headers['Host'] = self.host
         request.headers['User-Agent'] = self._user_agent
 
@@ -220,8 +223,7 @@ class HTTPConnection(Connection):
 
 
 class RTSPConnection(Connection):
-    M_OPTIONS = 'OPTIONS'
-    M_DESCRIBE = 'DESCRIBE'
+    __slots__ = ('cseq',)
 
     def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = DEFAULT_UA):
         super().__init__(host, port, interface=interface,
@@ -229,7 +231,7 @@ class RTSPConnection(Connection):
         self.cseq = 0
 
     def query(self, url: str = '*', headers: dict = {}) -> Response:
-        method = self.M_OPTIONS if url == '*' else self.M_DESCRIBE
+        method = M_OPTIONS if url == '*' else M_DESCRIBE
         connection = self._c
         if not connection:
             return Response()
@@ -243,7 +245,7 @@ class RTSPConnection(Connection):
         headers['User-Agent'] = self._user_agent
         headers['Accept'] = 'application/sdp'
 
-        request = Request(method, url, Request.PROTO_RTSP_1)
+        request = Request(method, url, PROTO_RTSP_1)
         request.headers = headers
         request_str = str(request)
 
@@ -302,7 +304,7 @@ class RTSPConnection(Connection):
     def auth(self, path, cred):
         url = self.url(path)
         logger.info('Auth %s %s' % (url, cred))
-        auth_headers = self._auth_fn(self.M_DESCRIBE, url, *cred.split(':'))
+        auth_headers = self._auth_fn(M_DESCRIBE, url, *cred.split(':'))
         return self.query(url, auth_headers)
 
     def url(self, path: str = '', cred: str = '') -> str:
