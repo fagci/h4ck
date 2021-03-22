@@ -223,11 +223,10 @@ class RTSPConnection(Connection):
     M_OPTIONS = 'OPTIONS'
     M_DESCRIBE = 'DESCRIBE'
 
-    _cseqs = dict()
-
     def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = DEFAULT_UA):
         super().__init__(host, port, interface=interface,
                          timeout=timeout, query_timeout=query_timeout, ua=ua)
+        self.cseq = 0
 
     def query(self, url: str = '*', headers: dict = {}) -> Response:
         method = self.M_OPTIONS if url == '*' else self.M_DESCRIBE
@@ -236,15 +235,11 @@ class RTSPConnection(Connection):
             return Response()
 
         if url == '*':
-            cseq = 0
-        else:
-            cseq = self._cseqs.get(connection, 0)
+            self.cseq = 0
 
-        cseq += 1
+        self.cseq += 1
 
-        self._cseqs[connection] = cseq
-
-        headers['CSeq'] = cseq
+        headers['CSeq'] = self.cseq
         headers['User-Agent'] = self._user_agent
         headers['Accept'] = 'application/sdp'
 
