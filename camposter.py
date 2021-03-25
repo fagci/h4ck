@@ -39,7 +39,7 @@ def main(stream_url, image_path, location):
 
         text = ' '.join(location)
         print(w, h)
-        font_size = int(0.04 * h)
+        font_size = int(0.04 * min(h, w))
         px = int(0.005 * w)
         py = int(0.002 * h)
         font = ImageFont.truetype(str(FONT_PATH), font_size)
