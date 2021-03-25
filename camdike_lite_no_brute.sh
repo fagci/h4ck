@@ -18,6 +18,6 @@ while true; do
     echo
     echo Capture
     ./rtsp_capture.py local/bruted.txt -ff \
-        -cb camposter.py
+        -cb ./camposter.py
 done
 

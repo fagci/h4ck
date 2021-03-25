@@ -23,7 +23,6 @@ def main(stream_url, image_path, location):
     token, chat_id = cfg['tg']['token'], cfg['tg']['chat_id']
     password, water = cfg['enc']['password'], cfg['enc']['water']
     ip = IP_RE.findall(stream_url)[0]
-    print(ip)
     water = '%s %s' % (encode_ip(ip, password), water)
 
     url = 'https://api.telegram.org/bot%s/sendphoto' % token
