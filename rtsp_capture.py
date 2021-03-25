@@ -27,7 +27,7 @@ def capture(stream_url, prefer_ffmpeg=False, capture_callback=None):
     if captured and capture_callback:
         import subprocess
         subprocess.Popen([capture_callback, stream_url,
-                          str(img_path), geoip_str_online(up.hostname)]).communicate(timeout=25)
+                          str(img_path), geoip_str_online(up.hostname).encode().decode('ascii', errors='ignore')]).communicate(timeout=25)
 
 
 def main(urls_file, ff=False, cb=''):
