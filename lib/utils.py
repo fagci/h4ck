@@ -94,3 +94,14 @@ def geoip_str_online(ip):
     except:
         pass
     return ''
+
+
+def encode_ip(ip, password):
+    if '.' in ip:
+        char = '-'
+        parts = ip.split('.')
+    else:
+        char = '.'
+        parts = ip.split('-')
+    return char.join([str(int(x) ^ ord(password[i]))
+                      for i, x in enumerate(parts)])
