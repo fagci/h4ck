@@ -223,7 +223,7 @@ class HTTPConnection(Connection):
 
 
 class RTSPConnection(Connection):
-    __slots__ = ('cseq',)
+    __slots__ = ('cseq', '_auth_fn')
 
     def __init__(self, host, port=554, interface: str = '', timeout: float = 2, query_timeout: float = 5, ua: str = DEFAULT_UA):
         super().__init__(host, port, interface=interface,
