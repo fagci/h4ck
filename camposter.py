@@ -33,9 +33,6 @@ def main(stream_url, image_path, location):
         parse_mode='Markdown'
     )
 
-    px = 16
-    py = 2
-
     with open(image_path, 'rb') as f:
         img: Image = Image.open(f)
         w, h = img.size
@@ -43,6 +40,8 @@ def main(stream_url, image_path, location):
         text = ' '.join(location)
         print(w, h)
         font_size = int(0.04 * h)
+        px = int(0.005 * w)
+        py = int(0.002 * h)
         font = ImageFont.truetype(str(FONT_PATH), font_size)
         draw = ImageDraw.Draw(img, 'RGBA')
         _, text_height = draw.textsize('Wg', font)
