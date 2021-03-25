@@ -41,7 +41,9 @@ def main(stream_url, image_path, location):
         w, h = img.size
 
         text = ' '.join(location)
-        font = ImageFont.truetype(str(FONT_PATH), 16 + int(22*h/1080))
+        print(w, h)
+        font_size = min(16, int(16 * h / 840))
+        font = ImageFont.truetype(str(FONT_PATH), font_size)
         draw = ImageDraw.Draw(img, 'RGBA')
         _, text_height = draw.textsize('Wg', font)
         water_width, _ = draw.textsize(water, font)
