@@ -42,7 +42,7 @@ def main(stream_url, image_path, location):
 
         text = ' '.join(location)
         print(w, h)
-        font_size = max(12, int(0.045 * h))
+        font_size = int(0.04 * h)
         font = ImageFont.truetype(str(FONT_PATH), font_size)
         draw = ImageDraw.Draw(img, 'RGBA')
         _, text_height = draw.textsize('Wg', font)
