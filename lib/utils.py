@@ -105,3 +105,10 @@ def encode_ip(ip, password):
         parts = ip.split('-')
     return char.join([str(int(x) ^ ord(password[i]))
                       for i, x in enumerate(parts)])
+
+
+def sh(*args):
+    import subprocess
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    return stdout
