@@ -56,7 +56,7 @@ def process_ftp(ip):
         try:
             with Connector(ip, timeout=15) as ftp:
                 ftp.login()
-                lst = ftp.nlst()
+                lst = [p for p in ftp.nlst() if p not in ('.', '..')]
                 if not lst:
                     break
                 with FTP_LOG_PATH.open('a') as f:
