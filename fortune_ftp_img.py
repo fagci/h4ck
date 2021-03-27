@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from ftplib import FTP, FTP_TLS, error_perm, error_proto, error_temp
+from ftplib import FTP, FTP_TLS, error_perm, error_proto, error_reply, error_temp
 from socket import timeout
 from time import sleep
 
@@ -49,61 +49,51 @@ def traverse(ftp: FTP, depth=0, files=[]):
 
 
 def process_ftp(ip):
-    Connector = FTP_TLS
+    Connector = FTP
     retries = 5
+
     while retries > 0:
         try:
-            with Connector(ip, timeout=10) as ftp:
+            with Connector(ip, timeout=15) as ftp:
                 ftp.login()
                 lst = ftp.nlst()
                 if not lst:
-                    return
-                print(ip, 'lst:', *lst, sep='\n')
+                    break
                 with FTP_LOG_PATH.open('a') as f:
                     f.write('%s\n' % ip)
                 return traverse(ftp)
         except error_perm as e:
-            print(repr(e))
-            if Connector is FTP_TLS:
-                Connector = FTP
-                print('switch to simple ftp')
+            if Connector is FTP:
+                Connector = FTP_TLS
             else:
-                return
-            return
+                break
+        except error_reply as e:
+            code = int(str(e).split(None, 1)[0])
+            if code == 331 or code == 332:
+                break  # anon login only
         except error_temp as e:
-            print(repr(e))
-            if str(e).startswith('431') and Connector is FTP_TLS:
-                Connector = FTP
-                print('switch to simple ftp')
-            else:
-                return
-        except error_proto:
-            if Connector is FTP_TLS:
-                Connector = FTP
-                print('switch to simple ftp')
-            else:
-                return
-        except EOFError:
-            return
-        except UnicodeDecodeError as e:
-            print(repr(e))
-            return
-        except timeout:
+            code = int(str(e).split(None, 1)[0])
+            if code == 421:
+                break
+            if code == 431 and Connector is FTP:
+                Connector = FTP_TLS
+        except timeout as e:
             sleep(1)
-            retries = 2  # one more try
-        except OSError:
-            sleep(2)
+            if retries > 2:
+                retries = 2  # one more try
+        except OSError as e:
+            sleep(0.25)
+            continue
         except KeyboardInterrupt:
             print('Interrupted by user.')
             exit(130)
         except Exception as e:
-            print(repr(e))
-            return
+            break
         retries -= 1
 
 
 def check_host(ip, _):
-    if check_port(ip, 21):
+    if check_port(ip, 21, 1.5):
         process_ftp(ip)
 
 
