@@ -49,12 +49,14 @@ def traverse(ftp: FTP, depth=0, files=[]):
 
 
 def process_ftp(ip):
-    Connector = FTP
+    Connector: type[FTP] = FTP
     retries = 5
 
     while retries > 0:
         try:
             with Connector(ip, timeout=15) as ftp:
+                ftp.encoding = 'utf-8'
+                ftp.sendcmd('OPTS UTF8 ON')
                 ftp.login()
                 lst = [p for p in ftp.nlst() if p not in ('.', '..')]
                 if not lst:
@@ -62,7 +64,7 @@ def process_ftp(ip):
                 with FTP_LOG_PATH.open('a') as f:
                     f.write('%s\n' % ip)
                 return traverse(ftp)
-        except error_perm as e:
+        except (error_perm, error_proto) as e:
             if Connector is FTP:
                 Connector = FTP_TLS
             else:
@@ -78,22 +80,25 @@ def process_ftp(ip):
             if code == 431 and Connector is FTP:
                 Connector = FTP_TLS
         except timeout as e:
-            sleep(1)
             if retries > 2:
                 retries = 2  # one more try
         except OSError as e:
             sleep(0.25)
+            retries -= 1
             continue
         except KeyboardInterrupt:
             print('Interrupted by user.')
             exit(130)
         except Exception as e:
+            print(repr(e))
             break
         retries -= 1
+        sleep(1)
 
 
 def check_host(ip, _):
     if check_port(ip, 21, 1.5):
+        sleep(1)
         process_ftp(ip)
 
 
