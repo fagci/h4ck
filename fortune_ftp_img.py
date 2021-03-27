@@ -62,31 +62,40 @@ def process_ftp(ip):
                 with FTP_LOG_PATH.open('a') as f:
                     f.write('%s\n' % ip)
                 return traverse(ftp)
-        except error_perm:
+        except error_perm as e:
+            print(repr(e))
+            if Connector is FTP_TLS:
+                Connector = FTP
+                print('switch to simple ftp')
+            else:
+                return
             return
         except error_temp as e:
+            print(repr(e))
             if str(e).startswith('431') and Connector is FTP_TLS:
                 Connector = FTP
+                print('switch to simple ftp')
             else:
                 return
         except error_proto:
             if Connector is FTP_TLS:
                 Connector = FTP
+                print('switch to simple ftp')
             else:
                 return
         except EOFError:
             return
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
+            print(repr(e))
             return
         except timeout:
-            return
+            sleep(1)
+            retries = 2  # one more try
         except OSError:
             sleep(2)
         except KeyboardInterrupt:
             print('Interrupted by user.')
             exit(130)
-        except TypeError:
-            raise
         except Exception as e:
             print(repr(e))
             return
