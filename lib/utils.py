@@ -40,7 +40,7 @@ def dt():
 
 def str_to_filename(text):
     from re import sub
-    return sub(r'[^A-Za-z0-9]+', '_', text)
+    return sub(r'[^A-Za-z0-9.-]+', '_', text)
 
 
 def parse_range_list(rgstr):
