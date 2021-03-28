@@ -35,17 +35,17 @@ def traverse(ftp: FTP, depth=0, files=None):
         if len(files) > 100:
             print(ftp.host, 'too many files, leave')
             return  # we don't want wait more
-        print('+', ftp.host, path)
         files.append(path)
         if path == 'bin':
             continue
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
+                print('* DL', ftp.host, path)
                 download_image(ftp, path)
                 return path
 
-            if path.find('.') > 0:
-                print('Skip', path, 'as file')
+            if '.' in path:
+                print('-', path)
                 continue
 
             ftp.cwd(path)
@@ -58,18 +58,23 @@ def traverse(ftp: FTP, depth=0, files=None):
             pass
 
 
-def process_ftp(ip):
+def process_ftp(ip, time):
     Connector: type[FTP] = FTP
     retries = 5
 
     while retries > 0:
         try:
-            with Connector(ip, timeout=15) as ftp:
-                ftp.encoding = 'utf-8'
-                ftp.sendcmd('OPTS UTF8 ON')
+            with Connector(ip, timeout=30) as ftp:
                 ftp.login()
+                print('~', ip, time, 'ms')
+                try:
+                    ftp.sendcmd('OPTS UTF8 ON')
+                    ftp.encoding = 'utf-8'
+                except:
+                    pass
                 lst = [p for p in ftp.nlst() if p not in ('.', '..')]
                 if not lst:
+                    print('-', ip, 'no files')
                     break
                 with FTP_LOG_PATH.open('a') as f:
                     f.write('%s\n' % ip)
@@ -90,16 +95,22 @@ def process_ftp(ip):
             code = int(str(e).split(None, 1)[0])
             if code == 421:
                 break
+            if code == 450:
+                print('-', ip, e)
+                break
             if code == 431:
                 if Connector is FTP:
                     Connector = FTP_TLS
+                    continue
                 else:
                     break
+            print(repr(e))
+            break
         except timeout as e:
             if retries > 2:
                 retries = 2  # one more try
         except OSError as e:
-            sleep(0.25)
+            sleep(1)
             retries -= 1
             continue
         except KeyboardInterrupt:
@@ -114,10 +125,10 @@ def process_ftp(ip):
         sleep(1)
 
 
-def check_host(ip, _):
-    if check_port(ip, 21, 1.5):
-        sleep(1)
-        process_ftp(ip)
+def check_host(ip, lock):
+    res = check_port(ip, 21)
+    if res:
+        process_ftp(ip, int(res[1]*1000))
 
 
 def main(c=10_000_000, w=16):
