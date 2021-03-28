@@ -30,16 +30,21 @@ def traverse(ftp: FTP, depth=0, files=[]):
     for path in ftp.nlst():
         if path in ('.', '..'):
             continue
-        print('+', ftp.host, path)
         files.append(path)
         if len(files) > 100:
             return  # we don't want wait more
+        print('+', ftp.host, path)
         try:
-            if path.endswith(INTERESTING_EXTENSIONS):
+            if path.lower().endswith(INTERESTING_EXTENSIONS):
                 download_image(ftp, path)
                 return path
 
+            if path.find('.') > 0:
+                print('Skip', path, 'as file')
+                continue
+
             ftp.cwd(path)
+            print('cd', path)
             found = traverse(ftp, depth+1, files)
             if found:
                 return
