@@ -24,16 +24,19 @@ def download_image(ftp, filename):
         ftp.retrbinary(r_cmd, of.write)
 
 
-def traverse(ftp: FTP, depth=0, files=[]):
+def traverse(ftp: FTP, depth=0, files=None):
+    if files is None:
+        files = []
     if depth > 10:
         return
     for path in ftp.nlst():
         if path in ('.', '..'):
             continue
-        files.append(path)
         if len(files) > 100:
+            print(ftp.host, 'too many files, leave')
             return  # we don't want wait more
         print('+', ftp.host, path)
+        files.append(path)
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
                 download_image(ftp, path)
@@ -82,8 +85,11 @@ def process_ftp(ip):
             code = int(str(e).split(None, 1)[0])
             if code == 421:
                 break
-            if code == 431 and Connector is FTP:
-                Connector = FTP_TLS
+            if code == 431:
+                if Connector is FTP:
+                    Connector = FTP_TLS
+                else:
+                    break
         except timeout as e:
             if retries > 2:
                 retries = 2  # one more try
