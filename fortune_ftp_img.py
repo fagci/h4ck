@@ -37,6 +37,8 @@ def traverse(ftp: FTP, depth=0, files=None):
             return  # we don't want wait more
         print('+', ftp.host, path)
         files.append(path)
+        if path == 'bin':
+            continue
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
                 download_image(ftp, path)
@@ -49,9 +51,9 @@ def traverse(ftp: FTP, depth=0, files=None):
             ftp.cwd(path)
             print('cd', path)
             found = traverse(ftp, depth+1, files)
+            ftp.cwd('..')
             if found:
                 return
-            ftp.cwd('..')
         except error_perm:
             pass
 
@@ -71,7 +73,10 @@ def process_ftp(ip):
                     break
                 with FTP_LOG_PATH.open('a') as f:
                     f.write('%s\n' % ip)
-                return traverse(ftp)
+                print('Traverse', ip, 'start')
+                res = traverse(ftp)
+                print('Traverse', ip, 'end')
+                return res
         except (error_perm, error_proto) as e:
             if Connector is FTP:
                 Connector = FTP_TLS
