@@ -30,7 +30,7 @@ def traverse(ftp: FTP, depth=0, files=[]):
     for path in ftp.nlst():
         if path in ('.', '..'):
             continue
-        print('+', path)
+        print('+', ftp.host, path)
         files.append(path)
         if len(files) > 100:
             return  # we don't want wait more
@@ -89,6 +89,8 @@ def process_ftp(ip):
         except KeyboardInterrupt:
             print('Interrupted by user.')
             exit(130)
+        except (EOFError, UnicodeDecodeError):
+            break
         except Exception as e:
             print(repr(e))
             break
