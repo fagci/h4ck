@@ -14,6 +14,7 @@ FTP_FILES_PATH = LOCAL_DIR / 'ftp_files'
 FTP_LOG_PATH = LOCAL_DIR / 'ftp.txt'
 
 INTERESTING_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
+PATH_BLACKLIST = ('.', '..', 'bin')
 
 
 def download_image(ftp, path):
@@ -28,30 +29,33 @@ def download_image(ftp, path):
 def traverse(ftp: FTP, depth=0, files=None):
     if files is None:
         files = []
-    if depth > 10:
+
+    if depth > 10 or len(files) > 100:
+        print(ftp.host, 'too many files, leave')
         return
-    for path in ftp.nlst():
-        if path in ('.', '..', 'bin'):
-            continue
-        if len(files) > 100:
-            print(ftp.host, 'too many files, leave')
-            return  # we don't want wait more
-        files.append(path)
+
+    paths = [p for p in ftp.nlst() if p not in PATH_BLACKLIST]
+    files += paths
+
+    for path in paths:
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
                 download_image(ftp, path)
                 return path
 
+            # skip files by extension delimiter
             if '.' in path:
                 print('-', path)
                 continue
 
             ftp.cwd(path)
-            print('cd', path)
+            print(ftp.host, 'cd', path)
             found = traverse(ftp, depth+1, files)
             ftp.cwd('..')
+
             if found:
                 return
+
         except error_perm:
             pass
 
@@ -59,14 +63,18 @@ def traverse(ftp: FTP, depth=0, files=None):
 def get_files(ftp):
     ip = ftp.host
     lst = [p for p in ftp.nlst() if p not in ('.', '..')]
+
     if not lst:
         print('-', ip, 'no files')
         return
+
     with FTP_LOG_PATH.open('a') as f:
         f.write('%s\n' % ip)
+
     print('Traverse', ip, 'start')
     res = traverse(ftp)
     print('Traverse', ip, 'end')
+
     return res
 
 
