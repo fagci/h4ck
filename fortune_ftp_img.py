@@ -30,14 +30,18 @@ def traverse(ftp: FTP, depth=0, files=None):
     if files is None:
         files = []
 
-    if depth > 10 or len(files) > 100:
-        print(ftp.host, 'too many files, leave')
+    if depth > 10:
+        print(ftp.host, 'too deep, leave')
         return
 
     paths = [p for p in ftp.nlst() if p not in PATH_BLACKLIST]
-    files += paths
 
     for path in paths:
+        files.append(path)
+        if len(files) > 100:
+            print(ftp.host, 'too many files, leave')
+            return
+
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
                 download_image(ftp, path)
@@ -99,7 +103,7 @@ def process_ftp(ip, time):
             else:
                 break
         except (error_reply, error_temp) as e:
-            code = int(str(e).split(None, 1)[0])
+            code = int(str(e)[:3])
             if code == 331 or code == 332:
                 break  # anon login only
             if code == 421:
@@ -129,7 +133,7 @@ def process_ftp(ip, time):
         sleep(1)
 
 
-def check_host(ip):
+def check_host(ip, _):
     res = check_port(ip, 21)
     if res:
         process_ftp(ip, int(res[1]*1000))
@@ -137,7 +141,9 @@ def check_host(ip):
 
 def main(c=10_000_000, w=16):
     FTP_FILES_PATH.mkdir(exist_ok=True)
+    print('Started.')
     process_each(check_host, generate_ips(c), w)
+    print('Finished.')
 
 
 if __name__ == "__main__":
