@@ -8,7 +8,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 
 from lib.files import DATA_DIR, LOCAL_DIR
-from lib.utils import encode_ip
+from lib.utils import eip4
 
 CFG_PATH = LOCAL_DIR / '.camposter.ini'
 FONT_PATH = DATA_DIR / 'fonts' / 'opensans.ttf'
@@ -23,7 +23,7 @@ def main(stream_url, image_path, location):
     token, chat_id = cfg['tg']['token'], cfg['tg']['chat_id']
     password, water = cfg['enc']['password'], cfg['enc']['water']
     ip = IP_RE.findall(stream_url)[0]
-    water = '%s %s' % (encode_ip(ip, password), water)
+    water = '%s %s' % (eip4(ip), water)
 
     url = 'https://api.telegram.org/bot%s/sendphoto' % token
 

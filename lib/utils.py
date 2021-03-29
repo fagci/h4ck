@@ -107,6 +107,17 @@ def encode_ip(ip, password):
                       for i, x in enumerate(parts)])
 
 
+def eip4(ip):
+    n = str(ip4_to_int(ip))
+    return '%X-%X' % (int(n[::2]), int(n[1::2]))
+
+
+def dip4(s):
+    a, b = s.split('-')
+    a, b = str(int(a, 16)), str(int(b, 16))
+    return int_to_ip4(int(''.join('%s%s' % v for v in zip(a, b))))
+
+
 def sh(*args):
     import subprocess
     proc = subprocess.Popen(args, stdout=subprocess.PIPE)
