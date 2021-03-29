@@ -112,3 +112,13 @@ def sh(*args):
     proc = subprocess.Popen(args, stdout=subprocess.PIPE)
     stdout, _ = proc.communicate()
     return stdout
+
+
+def ip4_to_int(ip: str):
+    from ipaddress import IPv4Address
+    return int(IPv4Address(ip))
+
+
+def int_to_ip4(num: int):
+    from ipaddress import IPv4Address
+    return str(IPv4Address(num))
