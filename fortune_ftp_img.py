@@ -16,10 +16,11 @@ FTP_LOG_PATH = LOCAL_DIR / 'ftp.txt'
 INTERESTING_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
 
 
-def download_image(ftp, filename):
-    out_filename = '%s_%s' % (ftp.host, filename.rpartition('/')[-1])
+def download_image(ftp, path):
+    print('* DL', ftp.host, path)
+    out_filename = '%s_%s' % (ftp.host, path.rpartition('/')[-1])
     out_path = str(FTP_FILES_PATH / str_to_filename(out_filename))
-    r_cmd = ('RETR %s' % filename)
+    r_cmd = ('RETR %s' % path)
     with open(out_path, 'wb') as of:
         ftp.retrbinary(r_cmd, of.write)
 
@@ -30,17 +31,14 @@ def traverse(ftp: FTP, depth=0, files=None):
     if depth > 10:
         return
     for path in ftp.nlst():
-        if path in ('.', '..'):
+        if path in ('.', '..', 'bin'):
             continue
         if len(files) > 100:
             print(ftp.host, 'too many files, leave')
             return  # we don't want wait more
         files.append(path)
-        if path == 'bin':
-            continue
         try:
             if path.lower().endswith(INTERESTING_EXTENSIONS):
-                print('* DL', ftp.host, path)
                 download_image(ftp, path)
                 return path
 
@@ -58,6 +56,20 @@ def traverse(ftp: FTP, depth=0, files=None):
             pass
 
 
+def get_files(ftp):
+    ip = ftp.host
+    lst = [p for p in ftp.nlst() if p not in ('.', '..')]
+    if not lst:
+        print('-', ip, 'no files')
+        return
+    with FTP_LOG_PATH.open('a') as f:
+        f.write('%s\n' % ip)
+    print('Traverse', ip, 'start')
+    res = traverse(ftp)
+    print('Traverse', ip, 'end')
+    return res
+
+
 def process_ftp(ip, time):
     Connector: type[FTP] = FTP
     retries = 5
@@ -72,27 +84,16 @@ def process_ftp(ip, time):
                     ftp.encoding = 'utf-8'
                 except:
                     pass
-                lst = [p for p in ftp.nlst() if p not in ('.', '..')]
-                if not lst:
-                    print('-', ip, 'no files')
-                    break
-                with FTP_LOG_PATH.open('a') as f:
-                    f.write('%s\n' % ip)
-                print('Traverse', ip, 'start')
-                res = traverse(ftp)
-                print('Traverse', ip, 'end')
-                return res
+                return get_files(ftp)
         except (error_perm, error_proto) as e:
             if Connector is FTP:
                 Connector = FTP_TLS
             else:
                 break
-        except error_reply as e:
+        except (error_reply, error_temp) as e:
             code = int(str(e).split(None, 1)[0])
             if code == 331 or code == 332:
                 break  # anon login only
-        except error_temp as e:
-            code = int(str(e).split(None, 1)[0])
             if code == 421:
                 break
             if code == 450:
@@ -106,17 +107,12 @@ def process_ftp(ip, time):
                     break
             print(repr(e))
             break
-        except timeout as e:
-            if retries > 2:
-                retries = 2  # one more try
         except OSError as e:
-            sleep(1)
-            retries -= 1
-            continue
+            pass
         except KeyboardInterrupt:
             print('Interrupted by user.')
             exit(130)
-        except (EOFError, UnicodeDecodeError):
+        except (EOFError, UnicodeDecodeError, timeout):
             break
         except Exception as e:
             print(repr(e))
@@ -125,7 +121,7 @@ def process_ftp(ip, time):
         sleep(1)
 
 
-def check_host(ip, lock):
+def check_host(ip):
     res = check_port(ip, 21)
     if res:
         process_ftp(ip, int(res[1]*1000))
