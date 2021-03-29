@@ -107,6 +107,23 @@ def encode_ip(ip, password):
                       for i, x in enumerate(parts)])
 
 
+def sh(*args):
+    import subprocess
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    return stdout
+
+
+def ip4_to_int(ip: str):
+    from ipaddress import IPv4Address
+    return int(IPv4Address(ip))
+
+
+def int_to_ip4(num: int):
+    from ipaddress import IPv4Address
+    return str(IPv4Address(num))
+
+
 def to_base(s, b=63):
     s = int(s)
     res = ''
@@ -132,20 +149,3 @@ def eip4(ip):
 def dip4(s):
     a, b = s.split('-')
     return int_to_ip4((from_base(a) << 16) + from_base(b))
-
-
-def sh(*args):
-    import subprocess
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-    stdout, _ = proc.communicate()
-    return stdout
-
-
-def ip4_to_int(ip: str):
-    from ipaddress import IPv4Address
-    return int(IPv4Address(ip))
-
-
-def int_to_ip4(num: int):
-    from ipaddress import IPv4Address
-    return str(IPv4Address(num))
