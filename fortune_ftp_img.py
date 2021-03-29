@@ -103,7 +103,10 @@ def process_ftp(ip, time):
             else:
                 break
         except (error_reply, error_temp) as e:
-            code = int(str(e)[:3])
+            try:
+                code = int(str(e)[:3])
+            except:
+                break
             if code == 331 or code == 332:
                 break  # anon login only
             if code == 421:
