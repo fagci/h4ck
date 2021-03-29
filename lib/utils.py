@@ -107,14 +107,28 @@ def encode_ip(ip, password):
                       for i, x in enumerate(parts)])
 
 
+def to_base(s, b=70):
+    res = ''
+    BS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@%$*#!?&'
+    while s:
+        res += BS[s % b]
+        s //= b
+    return res[::-1] or '0'
+
+
+def from_base(s, b=70):
+    BS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@%$*#!?&'
+    return sum(b ** i * BS.find(c) for i, c in enumerate(s[::-1]))
+
+
 def eip4(ip):
     n = str(ip4_to_int(ip))
-    return '%X-%X' % (int(n[::2]), int(n[1::2]))
+    return '%s-%s' % (to_base(int(n[::2])), to_base(int(n[1::2])))
 
 
 def dip4(s):
     a, b = s.split('-')
-    a, b = str(int(a, 16)), str(int(b, 16))
+    a, b = str(from_base(a)), str(from_base(b))
     return int_to_ip4(int(''.join('%s%s' % v for v in zip(a, b))))
 
 
