@@ -212,8 +212,14 @@ class HTTPConnection(Connection):
 
         try:
             connection.sendall(str(request).encode())
-            # TODO: get overall response
-            data = connection.recv(1024).decode(errors='ignore')
+            maxlen = 1024 * 1024 * 128
+            data_bytes = b''
+            while True:
+                d = connection.recv(1024)
+                if not d or len(data_bytes) > maxlen:
+                    break
+                data_bytes += d
+            data = data_bytes.decode(errors='ignore')
             if data.startswith('HTTP/'):
                 return Response(data)
         except OSError:
