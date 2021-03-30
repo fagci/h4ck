@@ -142,7 +142,7 @@ def process_each(fn, it, workers=16, *args):
                 fn(item, pl, *args)
             except:
                 running = False
-                break
+                raise
 
     process(fn2, iter(it), workers, running, *args)
 

@@ -10,7 +10,8 @@ from lib.files import LOCAL_DIR
 from lib.scan import check_port, generate_ips, process_each
 from lib.utils import str_to_filename
 
-FTP_FILES_PATH = LOCAL_DIR / 'ftp_files'
+FTP_FILES_PATH = LOCAL_DIR / 'ftp_files' / 'files'
+FTP_LOGS_PATH = LOCAL_DIR / 'ftp_files' / 'logs'
 FTP_LOG_PATH = LOCAL_DIR / 'ftp.txt'
 
 INTERESTING_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
@@ -38,6 +39,8 @@ def traverse(ftp: FTP, depth=0, files=None):
 
     for path in paths:
         files.append(path)
+        with (FTP_LOGS_PATH / ('%s.txt' % ftp.host)).open('a') as f:
+            f.write('%s\n' % path)
         if len(files) > 100:
             print(ftp.host, 'too many files, leave')
             return
@@ -144,6 +147,7 @@ def check_host(ip, _):
 
 def main(c=10_000_000, w=16):
     FTP_FILES_PATH.mkdir(exist_ok=True)
+    FTP_LOGS_PATH.mkdir(exist_ok=True)
     print('Started.')
     process_each(check_host, generate_ips(c), w)
     print('Finished.')
