@@ -6,6 +6,7 @@ from fire import Fire
 
 from lib.scan import generate_ips, process_each
 from lib.net import RTSPConnection
+from lib.models import add_result
 
 counter = 0
 max_count = 1024
@@ -33,6 +34,7 @@ def check(ip, pl, out, p, t, i):
                 counter += 1
                 print('{:<4} {:<15} ({:>4} ms) {}'.format(
                     counter, ip, int(dt*1000), server[:20]))
+                add_result(ip, p, server)
                 out.write('%s\n' % ip)
 
 

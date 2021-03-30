@@ -140,6 +140,9 @@ def process_each(fn, it, workers=16, *args):
                 break
             try:
                 fn(item, pl, *args)
+            except StopIteration:
+                running = False
+                return
             except:
                 running = False
                 raise

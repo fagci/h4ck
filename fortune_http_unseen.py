@@ -8,6 +8,7 @@ from fire import Fire
 from lib.files import LOCAL_DIR
 from lib.net import HTTPConnection
 from lib.scan import generate_ips, process_each
+from lib.models import add_result
 
 LOG_FILE = LOCAL_DIR / 'http_unseen.txt'
 DISALLOW_RE = re.compile(
@@ -38,6 +39,7 @@ def check_host(ip, lock):
 
         with lock:
             print(ip, title)
+            add_result(ip, 80, title, ['unseen'])
             with LOG_FILE.open('a') as f:
                 f.write('%s %s\n' % (ip, title))
 

@@ -2,6 +2,7 @@ av
 colorama
 fire
 pillow
+pony
 pyyaml
 requests
 tqdm
