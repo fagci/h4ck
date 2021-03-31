@@ -23,9 +23,11 @@ class Target(db.Entity):
 
 class Port(db.Entity):
     num = Required(int)
-    comment = Optional(str)
+    created_at = Required(datetime, default=datetime.now())
     targets = Set(Target)
     tags = Optional(StrArray)
+    banner = Optional(str)
+    comment = Optional(str)
 
 
 @db_session
