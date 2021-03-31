@@ -34,7 +34,8 @@ def check(ip, pl, out, p, t, i):
                 counter += 1
                 print('{:<4} {:<15} ({:>4} ms) {}'.format(
                     counter, ip, int(dt*1000), server[:20]))
-                add_result(ip, p, server)
+                add_result(ip, p, server, ['fortune'], '\n'.join(
+                    '%s: %s' % v for v in response.headers.items()))
                 out.write('%s\n' % ip)
 
 

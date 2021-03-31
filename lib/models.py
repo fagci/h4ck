@@ -31,7 +31,7 @@ class Port(db.Entity):
 
 
 @db_session
-def add_result(ip, port, comment='', tags=None):
+def add_result(ip, port, comment='', tags=None, banner=''):
     try:
         if tags is None:
             tags = []
@@ -39,7 +39,7 @@ def add_result(ip, port, comment='', tags=None):
         if not t:
             t = Target(ip=ip)
         if port not in t.ports.num:
-            t.ports.add(Port(num=port, comment=comment))
+            t.ports.add(Port(num=port, comment=comment, banner=banner))
         for p in t.ports:
             if p.num == port:
                 for tag in tags:
