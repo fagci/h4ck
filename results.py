@@ -10,7 +10,7 @@ def main(comment=''):
     if comment:
         print('Search by comment')
         select((t.ip, t.ports.num, t.ports.comment)
-               for t in Target for p in t.ports if comment in p.comment).show()
+               for t in Target for p in t.ports if str(comment) in p.comment).show()
         return
 
     print('Stats by port')
