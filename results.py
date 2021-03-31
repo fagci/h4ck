@@ -6,7 +6,14 @@ from lib.models import Port, Target, db_session
 
 
 @db_session
-def main():
+def main(comment=''):
+    if comment:
+        print('Search by comment')
+        select((t.ip, t.ports.num, t.ports.comment)
+               for t in Target for p in t.ports if comment in p.comment).show()
+        return
+
+    print('Stats by port')
     select((p.num, p.tags, count(p)) for p in Port).show()
 
 
