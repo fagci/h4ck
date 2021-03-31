@@ -9,6 +9,7 @@ from fire import Fire
 from lib.files import LOCAL_DIR
 from lib.scan import check_port, generate_ips, process_each
 from lib.utils import str_to_filename
+from lib.models import add_result
 
 FTP_FILES_PATH = LOCAL_DIR / 'ftp_files' / 'files'
 FTP_LOGS_PATH = LOCAL_DIR / 'ftp_files' / 'logs'
@@ -74,6 +75,8 @@ def get_files(ftp):
     if not lst:
         print('-', ip, 'no files')
         return
+
+    add_result(ip, 21, '%d files' % len(lst))
 
     with FTP_LOG_PATH.open('a') as f:
         f.write('%s\n' % ip)
