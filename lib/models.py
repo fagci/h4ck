@@ -11,12 +11,13 @@ DB_PATH = LOCAL_DIR / 'db.sqlite'
 db = Database()
 
 
-class Target(db.Entity):
+class Host(db.Entity):
     ip = Required(str, unique=True)
     created_at = Required(datetime, default=datetime.now())
     updated_at = Required(datetime, default=datetime.now())
     ports = Set('Port')
     comment = Optional(str)
+    paths = Set('URLPath')
 
     def before_update(self):
         self.updated_at = datetime.now()
@@ -26,11 +27,39 @@ class Port(db.Entity):
     num = Required(int)
     created_at = Required(datetime, default=datetime.now())
     updated_at = Required(datetime, default=datetime.now())
-    target = Required(Target)
+    host = Required(Host)
     tags = Optional(StrArray)
     banner = Optional(str)
     comment = Optional(str)
     data = Optional(Json)
+    paths = Set('URLPath')
+
+
+class Cred(db.Entity):
+    user = Required(str)
+    password = Optional(str)
+    paths = Set('URLPath')
+
+
+class URLPath(db.Entity):
+    host = Required(Host)
+    port = Required(Port)
+    path = Required(str)
+    cred = Optional(Cred)
+
+
+@db_session
+def add_path(host, port, path, cred):
+    res = add_result(host, port)
+    if not res:
+        return
+    h, p = res
+
+    cr = None
+    if cred:
+        user, password = cred.split(':')
+        cr = Cred(user=user, password=password)
+    URLPath(host=h, port=p, path=path, cred=cr)
 
 
 @db_session
@@ -38,15 +67,15 @@ def add_result(ip, port, comment='', tags=None, banner='', **kwargs):
     try:
         if tags is None:
             tags = []
-        t = Target.get(ip=ip)
+        t = Host.get(ip=ip)
         if not t:
-            t = Target(ip=ip)
+            t = Host(ip=ip)
         p = None
         for _p in t.ports:
-            if p.num == port:
+            if _p.num == port:
                 p = _p
         if not p:
-            p = Port(num=port, target=t)
+            p = Port(num=port, host=t)
         for tag in tags:
             if tag not in p.tags:
                 p.tags.append(tag)
@@ -55,6 +84,7 @@ def add_result(ip, port, comment='', tags=None, banner='', **kwargs):
         p.data = kwargs
         p.updated_at = datetime.now()
         t.updated_at = datetime.now()
+        return (t, p)
     except Exception as e:
         print('error', repr(e))
 

@@ -8,6 +8,7 @@ from fire import Fire
 from lib.fuzz import Brute, Fuzz, ListFile
 from lib.net import RTSPConnection, logger
 from lib.scan import threaded
+from lib.models import add_result, add_path
 
 
 def process_host(interface, brute, host):
@@ -17,11 +18,13 @@ def process_host(interface, brute, host):
                 existing_path = fuzz_result.path
 
                 if fuzz_result.ok:
+                    add_path(host, 554, existing_path)
                     return connection.url(existing_path)
 
                 if fuzz_result.auth_needed:
                     if brute:
                         for cred in Brute(connection, existing_path):
+                            add_path(host, 554, existing_path, cred)
                             return connection.url(existing_path, cred)
                     break
     except KeyboardInterrupt:
