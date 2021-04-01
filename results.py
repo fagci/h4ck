@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-import sys
-
+from fire.core import Fire
 from pony.orm.core import select
 from pony.utils.utils import count
 
-from lib.models import Port, Target, db_session, sql_debug, db
+from lib.models import Port, Target, db_session, sql_debug
 
 
 @db_session
@@ -32,4 +31,4 @@ def main(query=''):
 
 if __name__ == "__main__":
     # sql_debug(True)
-    main(' '.join(sys.argv[1:]))
+    Fire(main)
