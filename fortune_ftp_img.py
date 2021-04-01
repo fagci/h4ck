@@ -76,8 +76,13 @@ def get_files(ftp: FTP):
         print('-', ip, 'no files')
         return
 
+    banner = ''
+    try:
+        banner = ftp.getwelcome()
+    except:
+        pass
     add_result(ip, 21, '%d file(s) in root' %
-               len(lst), ['fortune'], ftp.getwelcome())
+               len(lst), ['fortune'], banner)
 
     with FTP_LOG_PATH.open('a') as f:
         f.write('%s\n' % ip)
