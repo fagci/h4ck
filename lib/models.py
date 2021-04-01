@@ -24,7 +24,7 @@ class Target(db.Entity):
 class Port(db.Entity):
     num = Required(int)
     created_at = Required(datetime, default=datetime.now())
-    targets = Set(Target)
+    target = Required(Target)
     tags = Optional(StrArray)
     banner = Optional(str)
     comment = Optional(str)
@@ -38,12 +38,12 @@ def add_result(ip, port, comment='', tags=None, banner=''):
         t = Target.get(ip=ip)
         if not t:
             t = Target(ip=ip)
-        if port not in t.ports.num:
-            t.ports.add(Port(num=port, comment=comment, banner=banner))
-        for p in t.ports:
+        p = None
+        for _p in t.ports:
             if p.num == port:
-                for tag in tags:
-                    p.tags.append(tag)
+                p = _p
+        if not p:
+            p = Port(num=port, comment=comment, banner=banner, target=t)
         t.updated_at = datetime.now()
     except Exception as e:
         print('error', repr(e))
