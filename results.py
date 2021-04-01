@@ -26,7 +26,7 @@ def main(query=''):
     )
 
     for d, ip, p, c in res:
-        print('{} {:<15} {:>5} {}'.format(
+        print('{} {} {} {}'.format(
             d.strftime('%m-%d %H:%M'), ip, p, c))
 
 
