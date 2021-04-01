@@ -26,6 +26,9 @@ def process_host(interface, brute, host):
                         for cred in Brute(connection, existing_path):
                             add_path(host, 554, existing_path, cred)
                             return connection.url(existing_path, cred)
+                    else:
+                        add_path(host, 554, existing_path, '?:')
+
                     break
     except KeyboardInterrupt:
         print('ki')

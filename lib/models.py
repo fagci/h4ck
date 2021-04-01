@@ -50,7 +50,7 @@ class URLPath(db.Entity):
 
 
 @db_session
-def add_path(host, port, path, cred):
+def add_path(host, port, path, cred=''):
     res = add_result(host, port)
     if not res:
         return
