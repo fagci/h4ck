@@ -7,9 +7,9 @@ from time import sleep
 from fire import Fire
 
 from lib.files import LOCAL_DIR
+from lib.models import add_result
 from lib.scan import check_port, generate_ips, process_each
 from lib.utils import str_to_filename
-from lib.models import add_result
 
 FTP_FILES_PATH = LOCAL_DIR / 'ftp_files' / 'files'
 FTP_LOGS_PATH = LOCAL_DIR / 'ftp_files' / 'logs'
@@ -68,7 +68,7 @@ def traverse(ftp: FTP, depth=0, files=None):
             pass
 
 
-def get_files(ftp: FTP):
+def get_files(ftp: FTP, lock):
     ip = ftp.host
     lst = [p for p in ftp.nlst() if p not in ('.', '..')]
 
@@ -81,8 +81,9 @@ def get_files(ftp: FTP):
         banner = ftp.getwelcome()
     except:
         pass
-    add_result(ip, 21, '%d file(s) in root' %
-               len(lst), ['fortune'], banner)
+    with lock:
+        comment = '%d file(s) in root' % len(lst)
+        add_result(ip, 21, comment, ['fortune'], banner)
 
     with FTP_LOG_PATH.open('a') as f:
         f.write('%s\n' % ip)
@@ -94,7 +95,7 @@ def get_files(ftp: FTP):
     return res
 
 
-def process_ftp(ip, time):
+def process_ftp(ip, time, lock):
     Connector: type[FTP] = FTP
     retries = 5
 
@@ -108,7 +109,7 @@ def process_ftp(ip, time):
                     ftp.encoding = 'utf-8'
                 except:
                     pass
-                return get_files(ftp)
+                return get_files(ftp, lock)
         except (error_perm, error_proto) as e:
             if Connector is FTP:
                 Connector = FTP_TLS
@@ -148,10 +149,10 @@ def process_ftp(ip, time):
         sleep(1)
 
 
-def check_host(ip, _):
+def check_host(ip, lock):
     res = check_port(ip, 21)
     if res:
-        process_ftp(ip, int(res[1]*1000))
+        process_ftp(ip, int(res[1]*1000), lock)
 
 
 def main(c=10_000_000, w=16):
