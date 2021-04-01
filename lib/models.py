@@ -11,7 +11,7 @@ db = Database()
 
 
 class Target(db.Entity):
-    ip = PrimaryKey(str)
+    ip = Required(str, unique=True)
     created_at = Required(datetime, default=datetime.now())
     updated_at = Required(datetime, default=datetime.now())
     ports = Set('Port')
@@ -44,9 +44,18 @@ def add_result(ip, port, comment='', tags=None, banner=''):
                 p = _p
         if not p:
             p = Port(num=port, comment=comment, banner=banner, target=t)
+        for tag in tags:
+            if tag not in p.tags:
+                p.tags.append(tag)
         t.updated_at = datetime.now()
     except Exception as e:
         print('error', repr(e))
+
+
+@db.on_connect(provider='sqlite')
+def sqlite_case_insensitive_like(_, connection):
+    cursor = connection.cursor()
+    cursor.execute('PRAGMA case_sensitive_like = OFF')
 
 
 db.bind(provider='sqlite', filename=str(DB_PATH), create_db=True)
