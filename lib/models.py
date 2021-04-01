@@ -1,8 +1,9 @@
-from pony.orm import Database, db_session
-from pony.orm.core import Entity, Optional, PrimaryKey, Required, Set, commit, sql_debug
 from datetime import datetime
 
-from pony.orm.ormtypes import StrArray
+from pony.orm import Database, db_session
+from pony.orm.core import Optional, PrimaryKey, Required, Set, commit, sql_debug
+from pony.orm.ormtypes import Json, StrArray
+
 from lib.files import LOCAL_DIR
 
 DB_PATH = LOCAL_DIR / 'db.sqlite'
@@ -24,14 +25,16 @@ class Target(db.Entity):
 class Port(db.Entity):
     num = Required(int)
     created_at = Required(datetime, default=datetime.now())
+    updated_at = Required(datetime, default=datetime.now())
     target = Required(Target)
     tags = Optional(StrArray)
     banner = Optional(str)
     comment = Optional(str)
+    data = Optional(Json)
 
 
 @db_session
-def add_result(ip, port, comment='', tags=None, banner=''):
+def add_result(ip, port, comment='', tags=None, banner='', **kwargs):
     try:
         if tags is None:
             tags = []
@@ -43,10 +46,14 @@ def add_result(ip, port, comment='', tags=None, banner=''):
             if p.num == port:
                 p = _p
         if not p:
-            p = Port(num=port, comment=comment, banner=banner, target=t)
+            p = Port(num=port, target=t)
         for tag in tags:
             if tag not in p.tags:
                 p.tags.append(tag)
+        p.comment = comment
+        p.banner = banner
+        p.data = kwargs
+        p.updated_at = datetime.now()
         t.updated_at = datetime.now()
     except Exception as e:
         print('error', repr(e))

@@ -68,7 +68,7 @@ def traverse(ftp: FTP, depth=0, files=None):
             pass
 
 
-def get_files(ftp):
+def get_files(ftp: FTP):
     ip = ftp.host
     lst = [p for p in ftp.nlst() if p not in ('.', '..')]
 
@@ -76,7 +76,8 @@ def get_files(ftp):
         print('-', ip, 'no files')
         return
 
-    add_result(ip, 21, '%d files' % len(lst))
+    add_result(ip, 21, '%d file(s) in root' %
+               len(lst), ['fortune'], ftp.getwelcome())
 
     with FTP_LOG_PATH.open('a') as f:
         f.write('%s\n' % ip)

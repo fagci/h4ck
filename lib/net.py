@@ -96,6 +96,10 @@ class Response(Packet):
     def auth_needed(self):
         return self.code == 401
 
+    @property
+    def headers_str(self):
+        return '\n'.join('%s: %s' % v for v in self.headers.items())
+
     def __repr__(self):
         return (
             'Proto: %s\n'

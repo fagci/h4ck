@@ -29,7 +29,8 @@ def check_host(ip, lock):
 
     # coz connection closes often after 1st request
     with HTTPConnection(ip, 80) as c:
-        page = c.get('/').body
+        response = c.get('/')
+        page = response.body
 
         t_match = TITLE_RE.findall(page)
         h_match = H1_RE.findall(page)
@@ -39,7 +40,8 @@ def check_host(ip, lock):
 
         with lock:
             print(ip, title)
-            add_result(ip, 80, title, ['unseen'])
+            banner = response.headers_str
+            add_result(ip, 80, title, ['fortune', 'unseen'], banner)
             with LOG_FILE.open('a') as f:
                 f.write('%s %s\n' % (ip, title))
 
