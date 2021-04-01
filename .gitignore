@@ -1,5 +1,7 @@
 local/*
 !local/.gitkeep
+config/*.ini
+!config/*.example
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

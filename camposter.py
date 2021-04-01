@@ -7,10 +7,10 @@ import requests
 import re
 from PIL import Image, ImageDraw, ImageFont
 
-from lib.files import DATA_DIR, LOCAL_DIR
+from lib.files import DATA_DIR, CFG_DIR
 from lib.utils import eip4
 
-CFG_PATH = LOCAL_DIR / '.camposter.ini'
+CFG_PATH = CFG_DIR / 'camposter.ini'
 FONT_PATH = DATA_DIR / 'fonts' / 'opensans.ttf'
 IP_RE = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
 

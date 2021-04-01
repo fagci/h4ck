@@ -1,3 +1,4 @@
+from lib.files import CFG_DIR
 from datetime import datetime
 
 from pony.orm import Database, db_session
@@ -28,7 +29,7 @@ class Port(db.Entity):
     created_at = Required(datetime, default=datetime.now())
     updated_at = Required(datetime, default=datetime.now())
     host = Required(Host)
-    tags = Optional(StrArray)
+    tags = Optional(str)
     banner = Optional(str)
     comment = Optional(str)
     data = Optional(Json)
@@ -76,11 +77,13 @@ def add_result(ip, port, comment='', tags=None, banner='', **kwargs):
                 p = _p
         if not p:
             p = Port(num=port, host=t)
+        tt = p.tags.split(',') if p.tags else []
         for tag in tags:
-            if tag not in p.tags:
-                p.tags.append(tag)
-        p.comment = comment
-        p.banner = banner
+            if tag not in tt:
+                tt.append(tag)
+        p.tags = ','.join(tt)
+        p.comment = comment[:255]
+        p.banner = banner[:255]
         p.data = kwargs
         p.updated_at = datetime.now()
         t.updated_at = datetime.now()
@@ -95,5 +98,19 @@ def sqlite_case_insensitive_like(_, connection):
     cursor.execute('PRAGMA case_sensitive_like = OFF')
 
 
-db.bind(provider='sqlite', filename=str(DB_PATH), create_db=True)
+CFG = CFG_DIR / 'db.ini'
+
+if CFG.exists():
+    from configparser import ConfigParser
+    cfg = ConfigParser()
+    with CFG.open() as f:
+        cfg.read_file(f)
+
+    for section in cfg.sections():
+        db_cfg = dict(cfg[section])
+        if db_cfg.get('port'):
+            db_cfg['port'] = int(db_cfg['port'])
+        db.bind(**db_cfg)
+else:
+    db.bind(provider='sqlite', filename=str(DB_PATH), create_db=True)
 db.generate_mapping(create_tables=True)
