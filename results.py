@@ -2,24 +2,26 @@
 from fire import Fire
 from pony.orm.core import select
 from pony.utils.utils import count
-from lib.models import Port, Target, db_session
+from lib.models import Port, Target, db_session, sql_debug
 
 
 @db_session
-def main(comment='', v=False):
-    if comment:
-        print('Search by comment')
-        if v:
-            select((t.ip, t.ports.num, t.ports.comment, t.ports.banner)
-                   for t in Target for p in t.ports if str(comment) in p.comment).show()
-        else:
-            select((t.ip, t.ports.num, t.ports.comment)
-                   for t in Target for p in t.ports if str(comment) in p.comment).show()
+def main(comment='', banner='', ip='', limit=20):
+    if not any((comment, banner, ip)):
+        print('Stats by port')
+        select((p.num, p.tags, count(p)) for p in Port).show()
         return
 
-    print('Stats by port')
-    select((p.num, p.tags, count(p)) for p in Port).show()
+    select((t.ip, t.ports.num, t.ports.comment)
+           for t in Target for p in t.ports if (
+               str(comment) in p.comment
+               and
+               str(ip) in t.ip
+               and
+               str(banner) in p.banner
+    )).limit(limit).show()
 
 
 if __name__ == "__main__":
+    # sql_debug(True)
     Fire(main)
