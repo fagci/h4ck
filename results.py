@@ -7,7 +7,7 @@ from lib.models import Port, Target, db_session, sql_debug
 
 
 @db_session
-def main(query=''):
+def main(query='', port=None):
     if not query:
         print('Stats by port')
         select((p.num, p.tags, count(p)) for p in Port).show()
@@ -16,12 +16,13 @@ def main(query=''):
     res = select(
         (p.created_at, t.ip, p.num, p.comment)
         for t in Target for p in t.ports
-        if
-        query in p.comment
-        or
-        query in p.banner
-        or
-        query in t.ip
+        if (
+            query in p.comment
+            or
+            query in p.banner
+            or
+            query in t.ip
+        ) and (port == None or port == p.num)
     )
 
     for d, ip, p, c in res:
