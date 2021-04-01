@@ -1,6 +1,7 @@
 [mysql]
 provider=mysql
-host=localhost
-db=exampledb
-user=db_user
-passwd=123
+host=hostname
+port=3306
+db=dbname
+user=udername
+passwd=password
