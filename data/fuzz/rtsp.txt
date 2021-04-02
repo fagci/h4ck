@@ -1,6 +1,5 @@
 /1
 /0/1:1/main
-/user=admin&password=&channel=1&stream=0.sdp?
 /live/h264
 /live
 /h264/ch1/sub/av_stream
@@ -26,7 +25,6 @@
 /666
 /720p
 /AVStream1_1
-/CAM_ID.password.mp2
 /CH001.sdp
 /GetData.cgi
 /HD
@@ -65,7 +63,6 @@
 /cam1/h264/multicast
 /cam1/mjpeg
 /cam1/mpeg4
-/cam1/mpeg4?user='username'&pwd='password'
 /cam1/onvif-h264
 /camera.stm
 /ch0
@@ -138,7 +135,6 @@
 /nphMpeg4/nil-320x240
 /onvif-media/media.amp
 /onvif1
-/pass@10.0.0.5:6667/blinkhd
 /play1.sdp
 /play2.sdp
 /profile2/media.smp
@@ -167,9 +163,6 @@
 /udp/unicast/aiphone_H264
 /udpstream
 /user.pin.mp2
-/user=admin&password=&channel=1&stream=0.sdp?real_stream
-/user=admin_password=?????_channel=1_stream=0.sdp?real_stream
-/user=admin_password=R5XFY888_channel=1_stream=0.sdp?real_stream
 /user_defined
 /v2
 /video
