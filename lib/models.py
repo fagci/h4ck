@@ -113,4 +113,5 @@ if CFG.exists():
         db.bind(**db_cfg)
 else:
     db.bind(provider='sqlite', filename=str(DB_PATH), create_db=True)
+
 db.generate_mapping(create_tables=True)

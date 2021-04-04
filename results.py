@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 from fire.core import Fire
-from pony.orm.core import select
-from pony.utils.utils import count
+from pony.orm import db_session
 
-from lib.models import Port, Host, db_session, sql_debug
+from lib.models import Host, Port, sql_debug
 
 
 @db_session
-def main(query='', port='', tag='', sdt=False, sp=True, sc=True, sb=False, sd=False, st=False):
+def main(query='', port='', tag='', sdt=False, sp=True, sc=True, sb=False, sd=False, st=False, d=False, limit=None):
     """Display stats or search in db"""
+    from pony.orm.core import select
+
+    if d:
+        sql_debug(True)
+
     if not any((query, port, tag)):
         print('Stats by port')
+        from pony.utils.utils import count
         select((p.num, p.tags, count(p)) for p in Port).show()
         return
 
@@ -22,13 +27,15 @@ def main(query='', port='', tag='', sdt=False, sp=True, sc=True, sb=False, sd=Fa
             or
             query in p.banner
             or
+            query in p.tags
+            or
             query in str(p.num)
             or
             query in t.ip
         )
         and
         (tag in p.tags)
-    )
+    ).limit(limit)
 
     for d, ip, p, c, b, data, t in res:
         parts = []
@@ -49,5 +56,4 @@ def main(query='', port='', tag='', sdt=False, sp=True, sc=True, sb=False, sd=Fa
 
 
 if __name__ == "__main__":
-    # sql_debug(True)
     Fire(main)
