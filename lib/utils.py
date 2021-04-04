@@ -124,7 +124,7 @@ def int_to_ip4(num: int):
     return str(IPv4Address(num))
 
 
-def to_base(s, b=63):
+def to_base(s, b=62):
     s = int(s)
     res = ''
     BS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -134,7 +134,7 @@ def to_base(s, b=63):
     return res[::-1] or '0'
 
 
-def from_base(s, b=63):
+def from_base(s, b=62):
     s = str(s)
     BS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     return sum(b ** i * BS.find(c) for i, c in enumerate(s[::-1]))
@@ -142,7 +142,7 @@ def from_base(s, b=63):
 
 def eip4(ip):
     n = ip4_to_int(ip)
-    a, b = n >> 16, n & 0xff
+    a, b = n >> 16, n & 0xffff
     return '%s-%s' % (to_base(a), to_base(b))
 
 
