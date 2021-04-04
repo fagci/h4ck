@@ -320,6 +320,8 @@ class RTSPConnection(Connection):
     def url(self, path: str = '', cred: str = '') -> str:
         if cred:
             cred = '%s@' % cred
+        if self.port == 554:
+            return 'rtsp://%s%s%s' % (cred, self.host, path)
         return 'rtsp://%s%s:%d%s' % (cred, self.host, self.port, path)
 
     @staticmethod
