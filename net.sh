@@ -18,8 +18,7 @@ tcp_recv() {
 }
 
 tcp_check_port() {
-    tcp_conn $1 $2 2> /dev/null
-    [ ! $? -eq 0 ] && return 1
+    tcp_conn $1 $2 2> /dev/null || return $?
     tcp_close
 }
 
