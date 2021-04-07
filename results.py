@@ -14,9 +14,13 @@ def main(query='', port='', tag='', sdt=False, sp=True, sc=True, sb=False, sd=Fa
         sql_debug(True)
 
     if not any((query, port, tag)):
-        print('Stats by port')
         from pony.utils.utils import count
+
+        print('Stats by port')
         select((p.num, p.tags, count(p)) for p in Port).show()
+
+        print('Stats for rtsp')
+        select((p.paths.cred.user, p.paths.cred.password, count()) for p in Port if p.num == 554).show()
         return
 
     res = select(
