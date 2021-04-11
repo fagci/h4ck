@@ -14,20 +14,20 @@ db = Database()
 
 class Host(db.Entity):
     ip = Required(str, unique=True)
-    created_at = Required(datetime, default=datetime.now())
-    updated_at = Required(datetime, default=datetime.now())
+    created_at = Required(datetime, default=datetime.utcnow())
+    updated_at = Required(datetime, default=datetime.utcnow())
     ports = Set('Port')
     comment = Optional(str)
     paths = Set('URLPath')
 
     def before_update(self):
-        self.updated_at = datetime.now()
+        self.updated_at = datetime.utcnow()
 
 
 class Port(db.Entity):
     num = Required(int)
-    created_at = Required(datetime, default=datetime.now())
-    updated_at = Required(datetime, default=datetime.now())
+    created_at = Required(datetime, default=datetime.utcnow())
+    updated_at = Required(datetime, default=datetime.utcnow())
     host = Required(Host)
     tags = Optional(str)
     banner = Optional(str)
@@ -56,17 +56,23 @@ def add_path(host, port, path, cred=''):
         return
     h, p = res
 
-    cr = None
     try:
         path = URLPath.get(host=h, port=p, path=path)
     except ObjectNotFound:
         path = URLPath(host=h, port=p, path=path)
+
     if cred:
         user, password = cred.split(':')
-        cr = path.cred
-        if not cr:
+
+        cr: Cred = path.cred
+        if cr:
+            if user != '?':
+                cr.user = user
+                cr.password = password
+        else:
             cr = Cred(user=user, password=password)
-    path.cred = cr
+
+        path.cred = cr
 
 
 @db_session
@@ -91,8 +97,8 @@ def add_result(ip, port, comment='', tags=None, banner='', **kwargs):
         p.comment = comment[:255]
         p.banner = banner[:255]
         p.data = kwargs
-        p.updated_at = datetime.now()
-        t.updated_at = datetime.now()
+        p.updated_at = datetime.utcnow()
+        t.updated_at = datetime.utcnow()
         return (t, p)
     except Exception as e:
         print('error', repr(e))
