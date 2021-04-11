@@ -149,3 +149,8 @@ def eip4(ip):
 def dip4(s):
     a, b = s.split('-')
     return int_to_ip4((from_base(a) << 16) + from_base(b))
+
+
+def reverse_dns(ip):
+    from socket import gethostbyaddr
+    return gethostbyaddr(ip)[0]
