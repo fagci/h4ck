@@ -2,7 +2,7 @@ from lib.files import CFG_DIR
 from datetime import datetime
 
 from pony.orm import Database, db_session
-from pony.orm.core import Optional, PrimaryKey, Required, Set, commit, sql_debug
+from pony.orm.core import ObjectNotFound, Optional, PrimaryKey, Required, Set, commit, sql_debug
 from pony.orm.ormtypes import Json, StrArray
 
 from lib.files import LOCAL_DIR
@@ -57,10 +57,16 @@ def add_path(host, port, path, cred=''):
     h, p = res
 
     cr = None
+    try:
+        path = URLPath.get(host=h, port=p, path=path)
+    except ObjectNotFound:
+        path = URLPath(host=h, port=p, path=path)
     if cred:
         user, password = cred.split(':')
-        cr = Cred(user=user, password=password)
-    URLPath(host=h, port=p, path=path, cred=cr)
+        cr = path.cred
+        if not cr:
+            cr = Cred(user=user, password=password)
+    path.cred = cr
 
 
 @db_session
