@@ -111,7 +111,7 @@ def sh(*args):
     import subprocess
     proc = subprocess.Popen(args, stdout=subprocess.PIPE)
     stdout, _ = proc.communicate()
-    return stdout
+    return stdout.decode()
 
 
 def ip4_to_int(ip: str):
