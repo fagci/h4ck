@@ -3,7 +3,7 @@
 from fire import Fire
 
 from lib.scan import get_domains_from_cert
-from lib.utils import geoip_str_online, reverse_dns, sh
+from lib.utils import bing_ip, geoip_str_online, reverse_dns, sh
 
 
 def main(host):

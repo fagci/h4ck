@@ -153,4 +153,7 @@ def dip4(s):
 
 def reverse_dns(ip):
     from socket import gethostbyaddr
-    return gethostbyaddr(ip)[0]
+    try:
+        return gethostbyaddr(ip)[0]
+    except:
+        return
