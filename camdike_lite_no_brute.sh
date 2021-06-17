@@ -2,7 +2,7 @@
 while true; do
     echo
     echo Gather IPs
-    ./fortune_rtsp.py -w 512 -c 32 -t 0.7 -F
+    ./fortune_rtsp.py -w 400 -c 32 -t 0.7 -F
     cat local/rtsp_554.txt >> local/potential_rtsp.txt
 
     echo
@@ -17,7 +17,7 @@ while true; do
 
     echo
     echo Capture
-    ./rtsp_capture.py local/bruted.txt -ff \
+    timeout 5m ./rtsp_capture.py local/bruted.txt -ff \
         -cb ./camposter.py
 done
 
