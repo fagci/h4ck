@@ -3,7 +3,7 @@
 import asyncio
 
 from lib.scan import generate_ips
-from lib.net import RTSPConnection, Response
+from lib.net import RTSPConnection
 
 from fire import Fire
 
