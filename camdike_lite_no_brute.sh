@@ -2,7 +2,7 @@
 while true; do
     echo
     echo Gather IPs
-    ./fortune_rtsp.py -w 400 -c 32 -t 0.7 -F
+    ./fortune_rtsp_async.py -w 400 -c 32 -t 0.7 -F
     cat local/rtsp_554.txt >> local/potential_rtsp.txt
 
     echo
