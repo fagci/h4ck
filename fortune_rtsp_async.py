@@ -7,24 +7,30 @@ from lib.net import RTSPConnection
 
 from fire import Fire
 
-async def worker(q_in, q_out, port, timeout=1.5):
+async def worker(q_in, q_out, port, timeout=0.75):
     while True:
         ip = await q_in.get()
-        with RTSPConnection(ip, port, timeout=timeout) as c:
-            r = c.query()
+        c = asyncio.open_connection(ip, port)
+        try:
+            await asyncio.wait_for(c, timeout)
+        except:
+            pass
+        else:
+            with RTSPConnection(ip, port) as c:
+                r = c.query()
 
-            if r.found and 'PLAY' in r.headers.get('public', ''):
-                print(ip)
-                q_out.put_nowait(ip)
-
-        q_in.task_done()
+                if r.found and 'PLAY' in r.headers.get('public', ''):
+                    print(ip)
+                    q_out.put_nowait(ip)
+        finally:
+            q_in.task_done()
 
 async def filler(q_in, tasks_q_filled, limit):
     for ip in generate_ips(limit):
         await q_in.put(ip)
     tasks_q_filled.set()
 
-async def main(port=554, t=1.5, w=256, l=20000):
+async def main(port=554, t=0.75, w=256, l=20000):
     tasks_q = asyncio.Queue(w)
     out_q = asyncio.Queue()
     tasks_q_filled = asyncio.Event()
