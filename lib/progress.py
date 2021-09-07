@@ -23,4 +23,4 @@ class Progress:
             self.__del__()
 
     def __del__(self):
-        print(f'\r', end='\x1b[1K\r', flush=True)
+        print('\r', end='\x1b[1K\r', flush=True)

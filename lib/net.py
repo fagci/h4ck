@@ -285,13 +285,7 @@ class RTSPConnection(Connection):
             else:
                 err = 'Empty response'
 
-        except BrokenPipeError as e:
-            logger.error(repr(e))
-            err = e
-        except SocketTimeout as e:
-            logger.warning(repr(e))
-            err = e
-        except ConnectionResetError as e:
+        except (BrokenPipeError, SocketTimeout, ConnectionResetError) as e:
             logger.error(repr(e))
             err = e
         except UnicodeDecodeError as e:

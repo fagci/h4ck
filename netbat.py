@@ -48,8 +48,7 @@ def ips_from_file(file, randomize=False):
         for ln in f:
             d = ln.rstrip()
             if '/' in d:
-                for ip in get_ips(d, randomize):
-                    yield ip
+                yield from get_ips(d, randomize)
             else:
                 yield d
 
@@ -71,7 +70,7 @@ def main(hosts, ports, workers=16, r=False, i=None):
     :param int workers: number of worker threads
     :param bool r: randomize ips
     :param str i: interface for scan"""
-    if isinstance(ports, int) or isinstance(ports, str):
+    if isinstance(ports, (int, str)):
         ports = parse_range_list(str(ports))
 
     ips = []
