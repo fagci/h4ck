@@ -57,9 +57,10 @@ def check_path(allow_html: bool, url: str):
     try:
         r = session.get(url, timeout=5, allow_redirects=False,
                         verify=False, stream=True, headers=headers)
-        if allow_html or r.headers.get('Content-Type') != 'text/html':
-            if r.status_code == 200:
-                return True, url, len(r.content)
+        if (
+            allow_html or r.headers.get('Content-Type') != 'text/html'
+        ) and r.status_code == 200:
+            return True, url, len(r.content)
     except requests.ConnectionError as e:
         print(end='\r')
         err(repr(e))
@@ -172,7 +173,7 @@ def check_cms(_, r):
     """Check CMS"""
     cmses = list(check_src(r.text, CMS_LIST))
     if cmses:
-        found(', '.join(c for c in cmses))
+        found(', '.join(cmses))
     else:
         nfound('No CMS found in source')
 
@@ -182,7 +183,7 @@ def check_techs(_, r):
     """Check techs"""
     techs = list(check_src(r.text, TECH_LIST))
     if techs:
-        found(', '.join(t for t in techs))
+        found(', '.join(techs))
     else:
         nfound('No tech found')
 

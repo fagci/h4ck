@@ -16,8 +16,7 @@ async def check(host, port, timeout=4):
                     t = time()
                     await asyncio.wait_for(c, timeout)
                     c.close()
-                    res = host, port, int((time()-t)*1000)
-                    return res
+                    return host, port, int((time()-t)*1000)
                 except Exception as e:
                     return None
     except:

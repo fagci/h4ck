@@ -91,12 +91,11 @@ class CommandLine(Cmd):
 
 
     def complete_use(self, text, *_):
-        if text:
-            completions = [mod for mod in self._modules if mod.startswith(text)]
-        else:
-            completions = self._modules[:]
-
-        return completions
+        return (
+            [mod for mod in self._modules if mod.startswith(text)]
+            if text
+            else self._modules[:]
+        )
 
     def preloop(self):
         if self._histfile.exists():

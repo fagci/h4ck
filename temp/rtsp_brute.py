@@ -104,11 +104,11 @@ def main(H: str = '', P: str = '', C: str = '', w: int = None, sp: bool = False,
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
 
-        if de:
-            stream_handler = logging.StreamHandler(sys.stderr)
-            stream_handler.setLevel(log_level)
-            stream_handler.setFormatter(formatter_c)
-            root_logger.addHandler(stream_handler)
+    if de:
+        stream_handler = logging.StreamHandler(sys.stderr)
+        stream_handler.setLevel(log_level)
+        stream_handler.setFormatter(formatter_c)
+        root_logger.addHandler(stream_handler)
 
     results = []
     hosts_file_path = H or LOCAL_DIR / 'hosts_554.txt'
